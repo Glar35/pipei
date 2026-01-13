@@ -1,0 +1,1 @@
+/Users/gilar/Desktop/Gil/Projects/pipei/pipei_macros/target/package/pipei_macros-0.1.1/target/debug/libpipei_macros.dylib: /Users/gilar/Desktop/Gil/Projects/pipei/pipei_macros/target/package/pipei_macros-0.1.1/src/lib.rs
