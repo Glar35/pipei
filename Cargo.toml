@@ -5,6 +5,8 @@ edition = "2024"
     description = "Point-free (no closures) multi-argument pipe and tap for better control flow."
 keywords = ["functional", "pipe", "tap", "no_std", "control-flow"]
 license = "MIT OR Apache-2.0"
+repository = "https://github.com/Glar35/pipei"
+documentation = "https://docs.rs/pipei"
 
 [dependencies]
 pipei_macros = { version = "0.1.1", optional = true }
