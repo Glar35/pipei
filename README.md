@@ -1,209 +1,155 @@
 # pipei
 
-`pipei` provides `pipe{i}` and `tap{i}` traits that enable point-free (no closures) multi-argument function chaining syntax.
-They bind the receiver as the first argument of `f` and return a closure for the remaining arguments.
-* **Pipe**: Transforms the input. Returns the result of the function `f`.
-* **Tap**: Inspects or mutates the input. Ignores the result of `f` and returns the original value.
+`pipei` provides a zero-cost, type-safe way to chain multi-argument free functions using method syntax, without the need for closures or extension traits.
 
-The `_with` variants project the input (e.g., viewing `String` as `str` or `Vec<T>` as `[T]`) before passing it to the function.
-The `_with_mut` variants allow side effects on a mutable reference, accepting both mutable functions (like `Vec::push`) and immutable functions (like `len`).
+Intuitively, the `.pipe()` operator transforms a free function `f(x, y, z)` into a method call `x.pipe(f)(y, z)`.
 
 ## Enabling arities
 
-Enable the arities you need via features:
+Enable the arities you need via features to control compile times.
 
 ```toml
 [dependencies]
-pipei = "0.1" # default: features = ["up_to_5"]
-# pipei = { version = "0.1", features = ["up_to_10"] }
-# pipei = { version = "0.1", features = ["0", "1", "3", "4"] }
+pipei = "*" # default: features = ["up_to_5"]
+# pipei = { version = "*", features = ["up_to_10"] }
+# pipei = { version = "*", features = ["0", "1", "3", "4"] }```
 ```
 
-## Basic chaining (by value)
+*Note: This library currently requires the `#![feature(impl_trait_in_assoc_type)]` nightly feature.*
 
-`pipe` passes the value into the function and returns the result. `tap` moves the value in, runs the function, and returns the original value.
+## Basic chaining
+
+`pipe` passes the value into the function and returns the result. `tap` inspects or mutates the input, ignores the result, and returns the original value.
 
 **Unified Tap API**: `tap` methods seamlessly accept functions taking either `&Self` (immutable) or `&mut Self` (mutable).
 
 ```rust
-use pipei::{Pipe1, Pipe2, Tap1, Tap2};
+use pipei::{Pipe, Tap};
 
 fn add(x: i32, y: i32) -> i32 { x + y }
 fn mul(x: i32, y: i32) -> i32 { x * y }
 fn lin(x: i32, a: i32, b: i32) -> i32 { a * x + b }
 
-let out = 2
-    .pipe1(add)(3)      // 2 + 3 = 5
-    .pipe1(mul)(10)     // 5 * 10 = 50
-    .pipe2(lin)(7, 1);  // 50 * 7 + 1 = 351
+let maybe_num = 2
+    .pipe(add)(3)      
+    .pipe(mul)(10)    
+    .pipe(lin)(7, 1);
+    .pipe(Option::Some)();
 
-assert_eq!(out, 351);
+assert_eq!(maybe_num, Some(351));
 
-fn log_val(x: &i32, label: &str) { println!("{}: {}", label, x); }
+fn log_val(x: &i32) { println!("val: {}", x); }
 fn add_assign(x: &mut i32, y: i32) { *x += y; }
 
 let val = 2
-    .tap1(log_val)("init")     // Immutable: passes &i32
-    .tap1(add_assign)(3)       // Mutable: passes &mut i32
-    .tap1(log_val)("result");
+    .tap(log_val)()         // Immutable: passes &i32
+    .tap(add_assign)(3)     // Mutable: passes &mut i32
+    .tap(log_val)();
 
 assert_eq!(val, 5);
 ```
 
-## Arity 0 (Pipe0 / Tap0)
+## `Pipe` for method binding
 
-`Pipe0` is useful for passing the receiver to a function that takes only one argument, or for wrapping the receiver in a constructor (like `Some` or `Ok`) without extra parentheses.
+`pipe` can be used to bound methods by partially applying an object to a method.
 
 ```rust
-use pipei::{Pipe0, Tap0};
+use pipei::Pipe;
 
-fn get_len(s: String) -> usize { s.len() }
-fn log_val(s: &String) { println!("val: {}", s); }
-fn clear_str(s: &mut String) { s.clear(); }
+struct Scalar(i32);
+impl Scalar {
+    fn linearize(&self, a: i32, b: i32) -> i32 { a * self.0 + b }
+}
 
-let maybe_num = "hello".to_string()
-    .pipe0(get_len)()
-    .pipe0(Option::Some)(); // No need for wrapper syntax
+let scalar = Scalar(10);
 
-assert_eq!(maybe_num, Some(5));
+// Extracting the bound method `scalar.lin` as a standalone function.
+let method_as_function = scalar.pipe(Scalar::linearize);
 
-// Works with both immutable and mutable functions
-let s = "hello".to_string()
-    .tap0(log_val)()    // Inspect
-    .tap0(clear_str)(); // Mutate
-
-assert_eq!(s, "");
+assert_eq!(method_as_function(1, 5), 15);
 ```
 
-## Borrowed views (Projection)
+## `TapWith`
 
-Use `_with` variants to apply a projection (like `Borrow::borrow` or `AsRef::as_ref`) before calling the function. This is useful for type adaptation or component inspection.
+While `tap` works great for direct access, `tap_with` separates the projection logic from the side-effect logic. This is necessary when the adaptation is non-trivial (e.g., calling a method instead of simple dereferencing) or when inspecting specific fields.
 
 ```rust
-use pipei::{Tap0Ref};
-use std::path::{Path, PathBuf};
+use pipei::TapWith;
 
-fn log_ext(p: &Path) { 
-    println!("File type: {:?}", p.extension().unwrap_or_default()); 
-}
+fn check_bytes(b: &[u8]) { assert_eq!(b[0], b'h'); }
+
+let s = String::from("hello");
+// "as_bytes" is a method, not a Deref, so automatic coercion won't work.
+s.tap_with(|s| s.as_bytes(), check_bytes)();
 
 struct Config { port: u16, host: String }
 fn check_port(p: &u16) { assert!(*p > 1024, "Reserved port!"); }
 
-// 1. Type Adaptation: Project PathBuf -> &Path
-let path = PathBuf::from("data.json");
-path.tap0_with(|x| x.as_ref(), log_ext)(); 
-
-// 2. Component Inspection: Validate a field
-let cfg = Config { port: 8080, host: "127.0.0.1".into() };
-let ready_cfg = cfg.tap0_with(|c| &c.port, check_port)();
+let cfg = Config { port: 8080, host: "localhost".into() };
+// Projects &Config -> &u16 to reuse a standard check function
+cfg.tap_with(|c| &c.port, check_port)();
 ```
 
-## Mutable views
+## `PipeRef`
 
-`tap{i}_with_mut` allows chaining side effects on a mutable reference. It accepts both mutable and immutable functions.
+`pipe_ref` allows extracting a sub-value (borrow) from a mutable parent for transformation chains without moving the parent.
 
 ```rust
-use pipei::{Pipe1Ref, Tap1Ref};
+use pipei::{PipeRef, Tap};
 
-fn log_vec(v: &Vec<i32>) { println!("len: {}", v.len()); }
-fn push_ret(v: &mut Vec<i32>, x: i32) -> &mut Vec<i32> { v.push(x); v }
+fn get_mut(v: &mut [i32; 3], i: usize) -> &mut i32 { &mut v[i] }
 
-let mut v1 = vec![];
-v1.pipe1_with_mut(|x| x, push_ret)(1);
-assert_eq!(v1, vec![1]);
+let mut data = [10, 20, 30];
 
-let mut v2 = vec![];
-v2.tap0_with_mut(|x| x, log_vec)()          // Immutable Fn(&Vec) works on mutable view
-  .tap1_with_mut(|x| x, Vec::push)(1);      // Mutable Fn(&mut Vec) works
+// Start a pipe from &mut data, get a mutable reference to index 0
+*data.pipe_ref(get_mut)(0) = 99;
 
-assert_eq!(v2, vec![1]);
+assert_eq!(data[0], 99);
 ```
 
 ## Comparison with the `tap` crate
 
-The [tap](https://crates.io/crates/tap) crate is the standard solution for continuous chaining.
-`pipei` extends this concept to multi-argument functions to address issues related to control flow and nesting depth.
+The [tap](https://crates.io/crates/tap) crate is the standard solution for continuous chaining. `pipei` extends this concept to multi-argument functions to address specific issues related to control flow, error handling, and nesting.
 
-### 1. Control Flow (Using The `?` Operator)
+When function arguments are the results of other chains (nesting) and those chains involve fallible operations (using `?`), standard closure-based chaining becomes difficult to manage.
 
-When dealing with multi-argument functions, because `tap`'s methods must take closure, 
-`?` (and `return`) inside it apply to the closure rather than the surrounding function, 
-which may force you to carry `Result` through the chain.
-
-In the following example, we are forced to break the method chaining and to use intermediate variables.
+Consider a workflow where we load a background, load and resize an overlay, composite them, and save the result. Both `load` and `save` are fallible (return `Result`).
 
 **Standard Rust:**
-```rust
-fn render_value(raw: &str) -> Result<String, ()> {
-    let n: i32 = raw.trim().parse().map_err(|_| ())?;
-    let q = checked_div(n, 2)?;
-    Ok(surround(q, "=", "=").to_ascii_uppercase())
-}
-```
-
-**Using `tap`:**
-Because `tap`'s `pipe` takes a closure, using `?` inside that closure makes the closure return a `Result`, 
-so you end up carrying `Result` through the chain (e.g. via `map`/`and_then`) instead of writing `?` at each step.
-```rust
-fn render_value(raw: &str) -> Result<String, ()> {
-    raw.trim()
-        .parse::<i32>().map_err(|_| ())
-        .pipe(|r| r.and_then(|x| checked_div(x, 2)))
-        .pipe(|r| r.map(|x| surround(x, "=", "=")))
-        .pipe(|r| r.map(|s| s.to_ascii_uppercase()))
-}
-```
-
-**Using `pipei`:**
-With `pipei`, arguments are evaluated before the call, so the `?` operator works exactly as intended.
-```rust
-fn render_value(raw: &str) -> Result<String, ()> {
-    raw.trim()
-        .parse::<i32>().map_err(|_| ())?
-        .pipe1(checked_div)(2)?
-        .pipe2(surround)("=", "=")
-        .to_ascii_uppercase()
-        .pipe0(Ok)()
-}
-```
-
-### 2. Recursive Nesting
-
-When function arguments are results of other chains, standard chaining forces deep closure nesting. 
-`pipei` maintains a flat structure. To illustrate this, consider the following example:
-
-**Standard Rust:**
-The logic is "inside-out": `save` is written first, but happens last.
+The logic reads "inside-out": `save` is written first, but executes last.
 ```rust
 save(
     composite_onto(
-        load("background.png")?,            // 1. Load Background
-        resize(load("overlay.png")?, 50),   // 2. Load & Resize Overlay
-        0.8                                 // 3. Overlay opacity
+        load("background.png")?,            
+        resize(load("overlay.png")?, 50),   
+        0.8                                 
     ),
-    "result.png"                            // 4. Save
+    "result.png"                            
 );
 ```
 
-**Using `tap`:** We restore the top-to-bottom flow, but processing the second argument (the overlay) requires opening a nested closure, adding visual clutter and further complicating control flow issues.
+**Using `tap`:**
+We can try to linearize it, but the secondary chain (`overlay`) must happen inside a closure. Because `load("overlay")?` uses the `?` operator, the closure itself returns a `Result`.
 ```rust
 load("background.png")?
     .pipe(|bg| {
-        load("overlay.png")
-            .pipe(|r| r.map(|fg| resize(fg, 50)))
-            .map(|fg| composite_onto(bg, fg, 0.8))
-    })
-    .and_then(|img| save(img, "result.png"));
+        // The `?` here forces this closure to return Result<Image, Error>
+        let overlay = load("overlay.png")?
+            .pipe(|fg| resize(fg, 50));
+        
+        // We must wrap the result in Ok() to satisfy the Result signature
+        Ok(composite_onto(bg, overlay, 0.8))
+    })? 
+    .pipe(|img| save(img, "result.png"));
 ```
 
 **Using `pipei`:**
-The primary flow (`load` -> `composite_onto` -> `save`) remains linear. The secondary flow (`overlay` -> `resize`) is handled inline without closures.
+The primary flow (`load` -> `composite` -> `save`) remains linear. The secondary flow (`overlay` -> `resize`) is handled inline. The `?` operator works naturally without changing the pipeline types or requiring `and_then`.
 ```rust
 load("background.png")?
-    .pipe2(composite_onto)(
-        load("overlay.png")?.pipe1(resize)(50),
+    .pipe(composite_onto)(
+        load("overlay.png")?.pipe(resize)(50), 
         0.8,
     )
-    .pipe1(save)("result.png")
+    .pipe(save)("result.png");
 ```
