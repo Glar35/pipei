@@ -1,6 +1,6 @@
 [package]
 name = "pipei"
-version = "0.1.9"
+version = "0.2.0"
 edition = "2024"
     description = "Point-free (no closures) multi-argument pipe and tap."
 keywords = ["functional", "pipe", "tap", "no_std", "control-flow"]

@@ -1,21 +1,21 @@
-# pipei
+# pipe{i}
 
-`pipei` provides a zero-cost, type-safe way to chain multi-argument free functions using method syntax, without the need for closures or extension traits.
+`pipei` provides a zero-cost, type-safe way to chain multi-argument functions using method syntax. It turns a function call `f(x, y, z)` into a method call `x.pipe(f)(y, z)`. It also includes a `tap` operator for side-effects (logging, mutation) that returns the original value.
 
-Intuitively, the `.pipe()` operator transforms a free function `f(x, y, z)` into a method call `x.pipe(f)(y, z)`.
+This project is inspired by the [UMCS proposal](https://internals.rust-lang.org/t/weird-syntax-idea-s-for-umcs/19200/35).
+It generalizes the [`tap`](https://crates.io/crates/tap) crate to support multi-argument pipelines and fallible operations `?` without nesting closures.
 
-## Enabling arities
+**Note:** Requires `#![feature(impl_trait_in_assoc_type)]` on nightly.
 
-Enable the arities you need via features to control compile times.
 
+To keep compile times fast, enable only the arities you need. 
+The crate supports arities from 0 (a single argument) up to 50. Use features like `up_to_N` (where `N` is a multiple of 5) or specific individual arity features
 ```toml
 [dependencies]
 pipei = "*" # default: features = ["up_to_5"]
-# pipei = { version = "*", features = ["up_to_10"] }
+# pipei = { version = "*", features = ["up_to_20"] }  
 # pipei = { version = "*", features = ["0", "1", "3", "4"] }```
 ```
-
-*Note: This library currently requires the `#![feature(impl_trait_in_assoc_type)]` nightly feature.*
 
 ## Basic chaining
 
@@ -33,7 +33,7 @@ fn lin(x: i32, a: i32, b: i32) -> i32 { a * x + b }
 let maybe_num = 2
     .pipe(add)(3)      
     .pipe(mul)(10)    
-    .pipe(lin)(7, 1);
+    .pipe(lin)(7, 1)
     .pipe(Option::Some)();
 
 assert_eq!(maybe_num, Some(351));
@@ -63,7 +63,7 @@ impl Scalar {
 
 let scalar = Scalar(10);
 
-// Extracting the bound method `scalar.lin` as a standalone function.
+// Extracting the bound method `scalar.linearize` as a standalone function.
 let method_as_function = scalar.pipe(Scalar::linearize);
 
 assert_eq!(method_as_function(1, 5), 15);
