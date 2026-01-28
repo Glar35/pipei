@@ -11,7 +11,6 @@
 //! ## Core API
 //!
 //! * **[`Pipe::pipe`]:** Transforms the value and returns the **new** value.
-//! * **[`PipeRef::pipe_ref`]:** Starts a pipe from a mutable reference to derive a borrowed value.
 //! * **[`Tap::tap`]:** Runs a side-effect (logging, mutation) and returns the **original** value.
 //! * **[`TapWith::tap_with`]:** Projects the value (e.g., gets a field), runs a side-effect on the projection, and returns the **original** value.
 //!
@@ -57,12 +56,6 @@ pub trait ImplCurryWith<const ARITY: usize, Args, AState, PState, RState, A0: ?S
     fn curry_with<'a>(self, arg0: A0, proj: P) -> Self::Curry<'a>;
 }
 
-/// Internal mechanism: Prepares a step starting specifically from `&'a mut A0`.
-pub trait ImplCurryRef<const ARITY: usize, Args, AState, RState, A0: ?Sized, R: ?Sized> {
-    type Curry<'a> where Self: 'a, A0: 'a;
-    fn curry<'a>(self, arg0: &'a mut A0) -> Self::Curry<'a>;
-}
-
 // ============================================================================================
 // Public Extension Traits
 // ============================================================================================
@@ -90,30 +83,6 @@ pub trait Pipe<const ARITY: usize, AState, RState> {
 }
 impl<const ARITY: usize, AState, RState, T> Pipe<ARITY, AState, RState> for T {}
 
-/// Extension trait for safe re-borrowing chains.
-pub trait PipeRef<const ARITY: usize, AState, RState> {
-    /// Transforms a mutable reference into a borrowed value (or sub-reference).
-    ///
-    /// This is useful for drilling down into a data structure without taking ownership.
-    ///
-    /// # Example
-    /// ```rust
-    /// # use crate::pipei::PipeRef;
-    /// fn first_mut(arr: &mut [i32; 3]) -> &mut i32 { &mut arr[0] }
-    ///
-    /// let mut data = [10, 20, 30];
-    /// *data.pipe_ref(first_mut)() = 99;
-    /// assert_eq!(data[0], 99);
-    /// ```
-    #[inline(always)]
-    fn pipe_ref<'a, R, F, Args>(&'a mut self, f: F) -> F::Curry<'a>
-    where
-        F: ImplCurryRef<ARITY, Args, AState, RState, Self, R>,
-    {
-        f.curry(self)
-    }
-}
-impl<const ARITY: usize, AState, RState, T> PipeRef<ARITY, AState, RState> for T {}
 
 /// Extension trait for running side effects without altering the pipeline value.
 pub trait Tap<const ARITY: usize, AState, RState> {
@@ -175,7 +144,7 @@ macro_rules! impl_arity {
     ($N:literal, $feat:literal, [ $($Args:ident),* ], $TupleType:ty) => {
         const _: () = {
             #[cfg(feature = $feat)]
-            use crate::{Imm, ImplCurry, ImplCurryWith, ImplCurryRef, Mut, Own, PipeMark, TapMark};
+            use crate::{Imm, ImplCurry, ImplCurryWith, Mut, Own, PipeMark, TapMark};
 
             #[cfg(feature = $feat)]
             // --- Tap (Direct) ---
@@ -246,61 +215,6 @@ macro_rules! impl_arity {
                 type Curry<'a> = impl FnOnce($($Args),*) -> R where F: 'a, A0: 'a;
                 #[inline(always)] fn curry<'a>(self, arg0: A0) -> Self::Curry<'a> {
                     move |$($Args),*| self(arg0, $($Args),*)
-                }
-            }
-
-            // --- PipeRef (Direct) ---
-            #[cfg(feature = $feat)]
-            impl<F, A0: ?Sized, $($Args,)* R: ?Sized> ImplCurryRef<$N, $TupleType, Imm, Imm, A0, R> for F
-            where F: for<'b> FnOnce(&'b A0, $($Args),*) -> &'b R {
-                type Curry<'a> = impl FnOnce($($Args),*) -> &'a R where F: 'a, A0: 'a;
-                #[inline(always)] fn curry<'a>(self, arg0: &'a mut A0) -> Self::Curry<'a> {
-                    move |$($Args),*| self(&*arg0, $($Args),*)
-                }
-            }
-
-            #[cfg(feature = $feat)]
-            impl<F, A0: ?Sized, $($Args,)* R: ?Sized> ImplCurryRef<$N, $TupleType, Mut, Imm, A0, R> for F
-            where F: for<'b> FnOnce(&'b mut A0, $($Args),*) -> &'b R {
-                type Curry<'a> = impl FnOnce($($Args),*) -> &'a R where F: 'a, A0: 'a;
-                #[inline(always)] fn curry<'a>(self, arg0: &'a mut A0) -> Self::Curry<'a> {
-                    move |$($Args),*| self(&mut *arg0, $($Args),*)
-                }
-            }
-
-            #[cfg(feature = $feat)]
-            impl<F, A0: ?Sized, $($Args,)* R: ?Sized> ImplCurryRef<$N, $TupleType, Imm, Mut, A0, R> for F
-            where F: for<'b> FnOnce(&'b A0, $($Args),*) -> &'b mut R {
-                type Curry<'a> = impl FnOnce($($Args),*) -> &'a mut R where F: 'a, A0: 'a;
-                #[inline(always)] fn curry<'a>(self, arg0: &'a mut A0) -> Self::Curry<'a> {
-                    move |$($Args),*| self(&*arg0, $($Args),*)
-                }
-            }
-
-            #[cfg(feature = $feat)]
-            impl<F, A0: ?Sized, $($Args,)* R: ?Sized> ImplCurryRef<$N, $TupleType, Mut, Mut, A0, R> for F
-            where F: for<'b> FnOnce(&'b mut A0, $($Args),*) -> &'b mut R {
-                type Curry<'a> = impl FnOnce($($Args),*) -> &'a mut R where F: 'a, A0: 'a;
-                #[inline(always)] fn curry<'a>(self, arg0: &'a mut A0) -> Self::Curry<'a> {
-                    move |$($Args),*| self(&mut *arg0, $($Args),*)
-                }
-            }
-
-            #[cfg(feature = $feat)]
-            impl<F, A0: ?Sized, $($Args,)* R> ImplCurryRef<$N, $TupleType, Imm, Own, A0, R> for F
-            where F: for<'b> FnOnce(&'b A0, $($Args),*) -> R {
-                type Curry<'a> = impl FnOnce($($Args),*) -> R where F: 'a, A0: 'a;
-                #[inline(always)] fn curry<'a>(self, arg0: &'a mut A0) -> Self::Curry<'a> {
-                    move |$($Args),*| self(&*arg0, $($Args),*)
-                }
-            }
-
-            #[cfg(feature = $feat)]
-            impl<F, A0: ?Sized, $($Args,)* R> ImplCurryRef<$N, $TupleType, Mut, Own, A0, R> for F
-            where F: for<'b> FnOnce(&'b mut A0, $($Args),*) -> R {
-                type Curry<'a> = impl FnOnce($($Args),*) -> R where F: 'a, A0: 'a;
-                #[inline(always)] fn curry<'a>(self, arg0: &'a mut A0) -> Self::Curry<'a> {
-                    move |$($Args),*| self(&mut *arg0, $($Args),*)
                 }
             }
         };
@@ -388,16 +302,17 @@ mod tests {
     }
 
     #[test]
-    fn test_pipe_ref_mutable_borrow() {
+    fn test_pipe_mutable_borrow() {
         let mut data = [10, 20, 30];
         fn first_mut(slice: &mut [i32; 3]) -> &mut i32 {
             &mut slice[0]
         }
 
-        let f: &mut i32 = data.pipe_ref(first_mut)();
+        let f: &mut i32 = (&mut data).pipe(first_mut)();
         *f = 99;
         assert_eq!(data[0], 99);
     }
+
 
     #[test]
     fn test_chaining_workflow() {

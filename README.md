@@ -3,7 +3,7 @@
 `pipei` provides a zero-cost, type-safe way to chain multi-argument functions using method syntax. It turns a function call `f(x, y, z)` into a method call `x.pipe(f)(y, z)`. It also includes a `tap` operator for side-effects (logging, mutation) that returns the original value.
 
 This project is inspired by the [UMCS proposal](https://internals.rust-lang.org/t/weird-syntax-idea-s-for-umcs/19200/35).
-It generalizes the [`tap`](https://crates.io/crates/tap) crate to support multi-argument pipelines and fallible operations `?` without nesting closures.
+It generalizes the [`tap`](https://crates.io/crates/tap) crate to support multi-argument pipelines.
 
 **Note:** Requires `#![feature(impl_trait_in_assoc_type)]` on nightly.
 
@@ -90,22 +90,6 @@ let cfg = Config { port: 8080, host: "localhost".into() };
 cfg.tap_with(|c| &c.port, check_port)();
 ```
 
-## `PipeRef`
-
-`pipe_ref` allows extracting a sub-value (borrow) from a mutable parent for transformation chains without moving the parent.
-
-```rust
-use pipei::{PipeRef, Tap};
-
-fn get_mut(v: &mut [i32; 3], i: usize) -> &mut i32 { &mut v[i] }
-
-let mut data = [10, 20, 30];
-
-// Start a pipe from &mut data, get a mutable reference to index 0
-*data.pipe_ref(get_mut)(0) = 99;
-
-assert_eq!(data[0], 99);
-```
 
 ## Comparison with the `tap` crate
 
