@@ -8,7 +8,7 @@ It generalizes the [`tap`](https://crates.io/crates/tap) crate to support multi-
 **Note:** Requires `#![feature(impl_trait_in_assoc_type)]` on nightly.
 
 
-To keep compile times fast, enable only the arities you need. 
+To keep compile times as fast as possible, enable only the arities you need. 
 The crate supports arities from 0 (a single argument) up to 50. Use features like `up_to_N` (where `N` is a multiple of 5) or specific individual arity features
 ```toml
 [dependencies]
