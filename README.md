@@ -88,7 +88,7 @@ let data = String::from("Header-Data");
 data.tap_with(|s| s.as_bytes(), validate_header)();
 
 
-// 2. Selecting fields (Server -> u16)
+// 2. Selecting fields
 struct Server {
     port: u16,
     active: bool,
