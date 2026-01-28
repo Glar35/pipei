@@ -1,6 +1,7 @@
 # pipe{i}
 
-`pipei` provides a zero-cost, type-safe way to chain multi-argument functions using method syntax. It turns a function call `f(x, y, z)` into a method call `x.pipe(f)(y, z)`. It also includes a `tap` operator for side-effects (logging, mutation) that returns the original value.
+`pipei` provides a zero-cost, type-safe way to chain multi-argument functions using method syntax. It turns a function call `f(x, y, z)` into a method call `x.pipe(f)(y, z)`. 
+It also includes a `tap` operator for side-effects (logging, mutation) that returns the original value.
 
 This project is inspired by the [UMCS proposal](https://internals.rust-lang.org/t/weird-syntax-idea-s-for-umcs/19200/35).
 It generalizes the [`tap`](https://crates.io/crates/tap) crate to support multi-argument pipelines.
@@ -42,50 +43,63 @@ fn add_assign(x: &mut i32, y: i32) { *x += y; }
 let val = 2
     .tap(log_val)()         // Immutable: passes &i32
     .tap(add_assign)(3)     // Mutable: passes &mut i32
-    .tap(log_val)();
 
 assert_eq!(val, 5);
 ```
 
-## `Pipe` for method binding
+## `Pipe` for Method Binding
 
-`pipe` can be used to bound methods by partially applying an object to a method.
-
+'pipe' can be used to convert a method into a standalone function. 
+By binding a specific object as the 'self' argument, you create a reusable function that implicitly uses that object's state.
 ```rust
 use pipei::Pipe;
 
-struct Scalar(i32);
-impl Scalar {
-    fn linearize(&self, a: i32, b: i32) -> i32 { a * self.0 + b }
+struct Discount {
+    rate: f64,
 }
 
-let scalar = Scalar(10);
+impl Discount {
+    fn apply(&self, price: f64, quantity: i32) -> f64 {
+        price * (quantity as f64) * (1.0 - self.rate)
+    }
+}
 
-// Extracting the bound method `scalar.linearize` as a standalone function.
-let method_as_function = scalar.pipe(Scalar::linearize);
+let season_pass = Discount { rate: 0.20 };
 
-assert_eq!(method_as_function(1, 5), 15);
+let calculate_total = season_pass.pipe(Discount::apply);
+
+assert_eq!(calculate_total(100.0, 2), 160.0);
 ```
 
 ## `TapWith`
 
-While `tap` works great for direct access, `tap_with` separates the projection logic from the side-effect logic. This is necessary when the adaptation is non-trivial (e.g., calling a method instead of simple dereferencing) or when inspecting specific fields.
+tap_with runs a side-effect on a projection of the value. 
+This is useful for adapting types (e.g. calling a method to get a different view) or selecting specific fields to reuse generic validation logic.
 
 ```rust
 use pipei::TapWith;
 
-fn check_bytes(b: &[u8]) { assert_eq!(b[0], b'h'); }
+// 1. Adapting types (String -> &[u8])
+fn validate_header(bytes: &[u8]) {
+    assert_eq!(bytes[0], b'H');
+}
 
-let s = String::from("hello");
-// "as_bytes" is a method, not a Deref, so automatic coercion won't work.
-s.tap_with(|s| s.as_bytes(), check_bytes)();
+let data = String::from("Header-Data");
+data.tap_with(|s| s.as_bytes(), validate_header)();
 
-struct Config { port: u16, host: String }
-fn check_port(p: &u16) { assert!(*p > 1024, "Reserved port!"); }
 
-let cfg = Config { port: 8080, host: "localhost".into() };
-// Projects &Config -> &u16 to reuse a standard check function
-cfg.tap_with(|c| &c.port, check_port)();
+// 2. Selecting fields (Server -> u16)
+struct Server {
+    port: u16,
+    active: bool,
+}
+
+fn check_safe_port(port: &u16) {
+    assert!(*port > 1024);
+}
+
+let srv = Server { port: 8080, active: true };
+srv.tap_with(|s| &s.port, check_safe_port)();
 ```
 
 
