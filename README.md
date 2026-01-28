@@ -14,14 +14,12 @@ The crate supports arities from 0 (a single argument) up to 50. Use features lik
 [dependencies]
 pipei = "*" # default: features = ["up_to_5"]
 # pipei = { version = "*", features = ["up_to_20"] }  
-# pipei = { version = "*", features = ["0", "1", "3", "4"] }```
+# pipei = { version = "*", features = ["0", "1", "3", "4"] }
 ```
 
 ## Basic chaining
 
 `pipe` passes the value into the function and returns the result. `tap` inspects or mutates the input, ignores the result, and returns the original value.
-
-**Unified Tap API**: `tap` methods seamlessly accept functions taking either `&Self` (immutable) or `&mut Self` (mutable).
 
 ```rust
 use pipei::{Pipe, Tap};
