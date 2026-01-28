@@ -46,13 +46,31 @@ pub struct PipeMark;
 
 /// Internal mechanism: Prepares a step starting from an owned value or direct reference.
 pub trait ImplCurry<const ARITY: usize, Args, AState, RState, MARK, A0: ?Sized, R: ?Sized> {
-    type Curry<'a> where Self: 'a, A0: 'a;
+    type Curry<'a>
+    where
+        Self: 'a,
+        A0: 'a;
     fn curry<'a>(self, arg0: A0) -> Self::Curry<'a>;
 }
 
 /// Internal mechanism: Prepares a step with a projection.
-pub trait ImplCurryWith<const ARITY: usize, Args, AState, PState, RState, A0: ?Sized, P, T: ?Sized, R: ?Sized> {
-    type Curry<'a> where Self: 'a, A0: 'a, P: 'a;
+pub trait ImplCurryWith<
+    const ARITY: usize,
+    Args,
+    AState,
+    PState,
+    RState,
+    A0: ?Sized,
+    P,
+    T: ?Sized,
+    R: ?Sized,
+>
+{
+    type Curry<'a>
+    where
+        Self: 'a,
+        A0: 'a,
+        P: 'a;
     fn curry_with<'a>(self, arg0: A0, proj: P) -> Self::Curry<'a>;
 }
 
@@ -82,7 +100,6 @@ pub trait Pipe<const ARITY: usize, AState, RState> {
     }
 }
 impl<const ARITY: usize, AState, RState, T> Pipe<ARITY, AState, RState> for T {}
-
 
 /// Extension trait for running side effects without altering the pipeline value.
 pub trait Tap<const ARITY: usize, AState, RState> {
@@ -134,7 +151,6 @@ pub trait TapWith<const ARITY: usize, AState, PState, RState> {
     }
 }
 impl<const ARITY: usize, AState, PState, RState, T> TapWith<ARITY, AState, PState, RState> for T {}
-
 
 // ============================================================================================
 // Macro Logic
@@ -261,21 +277,25 @@ mod tests {
     #[test]
     #[cfg(feature = "0")]
     fn test_simple_pipe() {
-        fn add_one(x: i32) -> i32 { x + 1 }
+        fn add_one(x: i32) -> i32 {
+            x + 1
+        }
         assert_eq!(1.pipe(add_one)(), 2);
     }
 
     #[test]
     #[cfg(feature = "1")]
     fn test_pipe_arity() {
-        fn sub(x: i32, y: i32) -> i32 { x - y }
+        fn sub(x: i32, y: i32) -> i32 {
+            x - y
+        }
         assert_eq!(10.pipe(sub)(4), 6);
     }
 
     #[test]
     fn test_tap_with_immutable() {
         struct Container {
-            val: i32
+            val: i32,
         }
         fn check_val(v: &i32) {
             assert_eq!(*v, 10);
@@ -290,7 +310,7 @@ mod tests {
     #[test]
     fn test_tap_with_mutable() {
         struct Container {
-            val: i32
+            val: i32,
         }
         fn add_one(v: &mut i32) {
             *v += 1;
@@ -313,16 +333,18 @@ mod tests {
         assert_eq!(data[0], 99);
     }
 
-
     #[test]
     fn test_chaining_workflow() {
-        fn add(x: i32, y: i32) -> i32 { x + y }
-        fn double(x: i32) -> i32 { x * 2 }
+        fn add(x: i32, y: i32) -> i32 {
+            x + y
+        }
+        fn double(x: i32) -> i32 {
+            x * 2
+        }
 
-        let res = 10
-            .pipe(add)(5)   // 15
+        let res = 10.pipe(add)(5) // 15
             .pipe(double)() // 30
-            .tap(|x: &i32| assert_eq!(*x, 30))();
+        .tap(|x: &i32| assert_eq!(*x, 30))();
 
         assert_eq!(res, 30);
     }
@@ -330,31 +352,31 @@ mod tests {
     #[test]
     fn test_mutable_tap_chain() {
         struct State {
-            count: i32
+            count: i32,
         }
         let s = State { count: 0 };
 
-        let res = s
-            .tap(|s: &mut State| s.count += 1)()
-            .tap(|s: &mut State| s.count += 2)();
+        let res = s.tap(|s: &mut State| s.count += 1)().tap(|s: &mut State| s.count += 2)();
 
         assert_eq!(res.count, 3);
     }
 
-
     #[test]
     fn bound_method_as_callback() {
-        struct Button { id: usize }
+        struct Button {
+            id: usize,
+        }
         impl Button {
-            fn on_click(&self, prime: usize) -> usize { self.id % prime }
+            fn on_click(&self, prime: usize) -> usize {
+                self.id % prime
+            }
         }
 
-        let buttons = [Button { id: 5}, Button { id: 6 }];
+        let buttons = [Button { id: 5 }, Button { id: 6 }];
 
         // 1. Make the array mutable and wrap items in Option
-        let callbacks: [Option<_>; 2] = core::array::from_fn(|i| {
-            Some((&buttons[i]).pipe(Button::on_click))
-        });
+        let callbacks: [Option<_>; 2] =
+            core::array::from_fn(|i| Some((&buttons[i]).pipe(Button::on_click)));
 
         for (cb, res) in callbacks.into_iter().zip([2, 0]) {
             let cb = cb.unwrap();
@@ -366,7 +388,9 @@ mod tests {
     fn unboxed_bound_methods() {
         struct Threshold(i32);
         impl Threshold {
-            fn check(&self, val: i32) -> bool { val > self.0 }
+            fn check(&self, val: i32) -> bool {
+                val > self.0
+            }
         }
 
         let low = Threshold(10);
