@@ -49,8 +49,6 @@
   <component name="ChangeListManager">
     <list default="true" id="9a160d57-da59-441c-aa3b-69ef0db1b8be" name="Changes" comment="removing pipe_ref">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -277,7 +275,8 @@
       <workItem from="1769365899567" duration="757000" />
       <workItem from="1769368017878" duration="241000" />
       <workItem from="1769614110883" duration="1848000" />
-      <workItem from="1769617256100" duration="1075000" />
+      <workItem from="1769617256100" duration="1304000" />
+      <workItem from="1769619475040" duration="19000" />
     </task>
     <task id="LOCAL-00001" summary="first commit">
       <option name="closed" value="true" />
@@ -383,7 +382,23 @@
       <option name="project" value="LOCAL" />
       <updated>1769615929662</updated>
     </task>
-    <option name="localTasksCounter" value="14" />
+    <task id="LOCAL-00014" summary="removing pipe_ref">
+      <option name="closed" value="true" />
+      <created>1769618521247</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1769618521247</updated>
+    </task>
+    <task id="LOCAL-00015" summary="removing pipe_ref">
+      <option name="closed" value="true" />
+      <created>1769618536212</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1769618536212</updated>
+    </task>
+    <option name="localTasksCounter" value="16" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

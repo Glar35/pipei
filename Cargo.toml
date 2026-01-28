@@ -2,7 +2,7 @@
 name = "pipei"
 version = "0.2.2"
 edition = "2024"
-    description = "Zero-cost generalized pipe and tap extensions for multi-argument function chaining."
+    description = "Generalized pipe and tap for multi-argument function chaining."
 keywords = ["functional", "pipe", "tap", "no_std", "chaining"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/Glar35/pipei"
