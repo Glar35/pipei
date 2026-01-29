@@ -160,8 +160,36 @@ macro_rules! impl_arity {
             #[cfg(feature = $feat)]
             use crate::{Imm, ImplCurry, ImplCurryWith, Mut, Own, PipeMark, TapMark};
 
+            // --- Pipe ---
             #[cfg(feature = $feat)]
-            // --- Tap (Direct) ---
+            impl<F, A0, $($Args,)* R> ImplCurry<$N, $TupleType, Imm, Own, PipeMark, A0, R> for F
+            where F: for<'b> Fn(&'b A0, $($Args),*) -> R {
+                type Curry<'a> = impl Fn($($Args),*) -> R where F: 'a, A0: 'a;
+                #[inline(always)] fn curry<'a>(self, arg0: A0) -> Self::Curry<'a> {
+                    move |$($Args),*| self(&arg0, $($Args),*)
+                }
+            }
+
+            #[cfg(feature = $feat)]
+            impl<F, A0, $($Args,)* R> ImplCurry<$N, $TupleType, Mut, Own, PipeMark, A0, R> for F
+            where F: for<'b> FnMut(&'b mut A0, $($Args),*) -> R {
+                type Curry<'a> = impl FnMut($($Args),*) -> R where F: 'a, A0: 'a;
+                #[inline(always)] fn curry<'a>(mut self, mut arg0: A0) -> Self::Curry<'a> {
+                    move |$($Args),*| self(&mut arg0, $($Args),*)
+                }
+            }
+
+            #[cfg(feature = $feat)]
+            impl<F, A0, $($Args,)* R> ImplCurry<$N, $TupleType, Own, Own, PipeMark, A0, R> for F
+            where F: FnOnce(A0, $($Args),*) -> R {
+                type Curry<'a> = impl FnOnce($($Args),*) -> R where F: 'a, A0: 'a;
+                #[inline(always)] fn curry<'a>(self, arg0: A0) -> Self::Curry<'a> {
+                    move |$($Args),*| self(arg0, $($Args),*)
+                }
+            }
+
+            // --- Tap ---
+            #[cfg(feature = $feat)]
             impl<F, A0, $($Args,)* R> ImplCurry<$N, $TupleType, Imm, Own, TapMark, A0, R> for F
             where F: for<'b> FnOnce(&'b A0, $($Args),*) -> R {
                 type Curry<'a> = impl FnOnce($($Args),*) -> A0 where F: 'a, A0: 'a;
@@ -201,34 +229,6 @@ macro_rules! impl_arity {
                 type Curry<'a> = impl FnOnce($($Args),*) -> A0 where F: 'a, A0: 'a, P: 'a;
                 #[inline(always)] fn curry_with<'a>(self, mut arg0: A0, proj: P) -> Self::Curry<'a> {
                     move |$($Args),*| { self(proj(&mut arg0), $($Args),*); arg0 }
-                }
-            }
-
-            // --- Pipe (Direct) ---
-            #[cfg(feature = $feat)]
-            impl<F, A0, $($Args,)* R> ImplCurry<$N, $TupleType, Imm, Own, PipeMark, A0, R> for F
-            where F: for<'b> FnOnce(&'b A0, $($Args),*) -> R {
-                type Curry<'a> = impl FnOnce($($Args),*) -> R where F: 'a, A0: 'a;
-                #[inline(always)] fn curry<'a>(self, arg0: A0) -> Self::Curry<'a> {
-                    move |$($Args),*| self(&arg0, $($Args),*)
-                }
-            }
-
-            #[cfg(feature = $feat)]
-            impl<F, A0, $($Args,)* R> ImplCurry<$N, $TupleType, Mut, Own, PipeMark, A0, R> for F
-            where F: for<'b> FnOnce(&'b mut A0, $($Args),*) -> R {
-                type Curry<'a> = impl FnOnce($($Args),*) -> R where F: 'a, A0: 'a;
-                #[inline(always)] fn curry<'a>(self, mut arg0: A0) -> Self::Curry<'a> {
-                    move |$($Args),*| self(&mut arg0, $($Args),*)
-                }
-            }
-
-            #[cfg(feature = $feat)]
-            impl<F, A0, $($Args,)* R> ImplCurry<$N, $TupleType, Own, Own, PipeMark, A0, R> for F
-            where F: FnOnce(A0, $($Args),*) -> R {
-                type Curry<'a> = impl FnOnce($($Args),*) -> R where F: 'a, A0: 'a;
-                #[inline(always)] fn curry<'a>(self, arg0: A0) -> Self::Curry<'a> {
-                    move |$($Args),*| self(arg0, $($Args),*)
                 }
             }
         };
@@ -401,5 +401,52 @@ mod tests {
 
         assert_eq!(validators[0].take().unwrap()(20), true);
         assert_eq!(validators[1].take().unwrap()(20), false);
+    }
+
+    #[test]
+    fn server_check() {
+        struct Server<'a> {
+            ip: &'a str,
+            port: u16,
+        }
+
+        // Reusable logic that checks raw bytes
+        fn check_ipv4(bytes: &[u8]) {
+            assert!(bytes.contains(&b'.'));
+        }
+
+        let s = Server {
+            ip: "127.0.0.1",
+            port: 8080,
+        };
+
+        (&s).tap_with(|x| x.ip.as_bytes(), check_ipv4)();
+        assert_eq!(s.port, 8080);
+
+        let s = s.tap_with(|x| x.ip.as_bytes(), check_ipv4)();
+        assert_eq!(s.port, 8080);
+    }
+
+    #[test]
+    fn check_reusability() {
+        struct Discount {
+            rate: f64,
+        }
+
+        impl Discount {
+            fn apply(&self, price: f64) -> f64 {
+                price * (1.0 - self.rate)
+            }
+        }
+
+        let season_pass = Discount { rate: 0.20 };
+
+        // Equivalent to the (hypothetical): let apply_discount = season_pass.apply;
+        let apply_discount = season_pass.pipe(Discount::apply);
+
+        let prices = [100.0, 200.0, 300.0];
+        let discounted = prices.map(apply_discount);
+
+        assert_eq!(discounted, [80.0, 160.0, 240.0]);
     }
 }
