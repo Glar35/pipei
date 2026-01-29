@@ -1,3 +1,4 @@
 /target
 /pipei_macros/target/
 /Cargo.lock
+.DS_Store
