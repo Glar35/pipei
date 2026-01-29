@@ -4,26 +4,24 @@
 
 //! # pipei
 //!
-//! A zero-cost library for composing function calls into fluent pipelines with precise lifetime control.
+//! A zero-cost library for chaining multi-argument functions using method syntax.
 //!
-//! Intuitively, the `.pipe()` operator transforms a function `f(x, y, z)` into a method call `x.pipe(f)(y, z)`.
+//! It turns a standard function call `f(x, y, z)` into a method call `x.pipe(f)(y, z)`.
 //!
 //! ## Core API
 //!
-//! * **[`Pipe::pipe`]:** Transforms the value and returns the **new** value.
-//! * **[`Tap::tap`]:** Runs a side-effect (logging, mutation) and returns the **original** value.
-//! * **[`TapWith::tap_with`]:** Projects the value (e.g., gets a field), runs a side-effect on the projection, and returns the **original** value.
-//!
+//! * **[`Pipe::pipe`]:** Passes the value into a function and returns the result.
+//! * **[`Tap::tap`]:** Inspects or mutates the value, then returns the original value.
+//! * **[`TapWith::tap_with`]:** Inspects or mutates a projection of the value, then returns the original value.
 //!
 //! ```rust
 //! # use crate::pipei::Pipe;
 //! fn add(a: i32, b: i32) -> i32 { a + b }
 //!
-//! // Correct:
-//! // 10i32.pipe(add)(5);
+//! // Equivalent to add(10, 5)
+//! let result = 10.pipe(add)(5);
 //!
-//! // Incorrect (function is prepared but never called):
-//! // 10i32.pipe(add);
+//! assert_eq!(result, 15);
 //! ```
 
 extern crate alloc;
@@ -105,7 +103,7 @@ impl<const ARITY: usize, AState, RState, T> Pipe<ARITY, AState, RState> for T {}
 pub trait Tap<const ARITY: usize, AState, RState> {
     /// Runs a side-effect and returns the original value.
     ///
-    /// Supports both immutable inspection and mutable modification of the value.
+    /// Supports both immutable and mutable operations on the value.
     ///
     /// # Example
     /// ```rust
