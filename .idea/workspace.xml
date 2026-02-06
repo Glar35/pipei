@@ -38,6 +38,7 @@
         <feature name="14" enabled="true" />
         <feature name="15" enabled="true" />
         <feature name="up_to_5" enabled="true" />
+        <feature name="default" enabled="true" />
       </package>
     </cargoProject>
     <cargoProject FILE="$PROJECT_DIR$/pipei_macros/Cargo.toml">
@@ -45,15 +46,17 @@
         <feature name="default" enabled="true" />
       </package>
     </cargoProject>
+    <cargoProject FILE="$PROJECT_DIR$/pipei_marcoes/Cargo.toml">
+      <package file="$PROJECT_DIR$/pipei_marcoes">
+        <feature name="default" enabled="true" />
+      </package>
+    </cargoProject>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9a160d57-da59-441c-aa3b-69ef0db1b8be" name="Changes" comment="removing pipe_ref">
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/pipei.iml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+    <list default="true" id="9a160d57-da59-441c-aa3b-69ef0db1b8be" name="Changes" comment="FnOnce -&gt; FnMut / FnMut for Mut / owned to make partial  application better">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Cargo.lock" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.lock" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.toml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib.rs" afterDir="false" />
     </list>
@@ -109,11 +112,31 @@
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
     "Cargo.Doctest of pipei (line 18).executor": "Run",
+    "Cargo.Doctest of tap_with (line 133).executor": "Run",
     "Cargo.Run.executor": "Run",
+    "Cargo.Test extended_tap_tests.executor": "Run",
+    "Cargo.Test extended_tap_tests::test_simulate_conditional_mutation.executor": "Run",
+    "Cargo.Test extended_tap_tests::test_simulate_tap_dbg.executor": "Run",
+    "Cargo.Test extended_tap_tests::test_simulate_tap_err.executor": "Run",
     "Cargo.Test lib::tests.executor": "Run",
+    "Cargo.Test mutation_tests.executor": "Run",
+    "Cargo.Test mutation_tests::tap_with_conditional_mutation.executor": "Run",
+    "Cargo.Test no_std_tests (1).executor": "Run",
+    "Cargo.Test no_std_tests.executor": "Run",
+    "Cargo.Test no_std_tests::test_tap_with_no_std_workflow.executor": "Run",
+    "Cargo.Test reference_tap_tests.executor": "Run",
+    "Cargo.Test reference_tap_tests::test_ref_tap_any_dbg.executor": "Run",
+    "Cargo.Test reference_tap_tests::test_ref_tap_err.executor": "Run",
+    "Cargo.Test tap_with_tests.executor": "Run",
     "Cargo.Test test_pipe0_flexibility.executor": "Run",
     "Cargo.Test tests::check_reusability.executor": "Run",
+    "Cargo.Test tests::no_std_tests::test_tap_with_no_std_workflow.executor": "Run",
     "Cargo.Test tests::server_check.executor": "Run",
+    "Cargo.Test tests::tap_extended.executor": "Run",
+    "Cargo.Test tests::tap_extended_clausure.executor": "Run",
+    "Cargo.Test tests::tap_extended_fixed.executor": "Run",
+    "Cargo.Test tests::tap_extended_inline.executor": "Run",
+    "Cargo.Test tests::tap_extended_mut.executor": "Run",
     "Cargo.Test tests::test_pipe_mutable_borrow.executor": "Run",
     "Cargo.Test verify_readme_examples.executor": "Run",
     "ModuleVcsDetector.initialDetectionPerformed": "true",
@@ -147,24 +170,7 @@
   <component name="RsExternalLinterProjectSettings">
     <option name="tool" value="Clippy" />
   </component>
-  <component name="RunManager" selected="Cargo.Test tests::check_reusability">
-    <configuration name="Doctest of pipei (line 18)" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package pipei --doc &quot;(line\ 18)&quot;" />
-      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
-      <envs />
-      <option name="emulateTerminal" value="true" />
-      <option name="channel" value="DEFAULT" />
-      <option name="requiredFeatures" value="true" />
-      <option name="allFeatures" value="false" />
-      <option name="withSudo" value="false" />
-      <option name="buildTarget" value="REMOTE" />
-      <option name="backtrace" value="SHORT" />
-      <option name="isRedirectInput" value="false" />
-      <option name="redirectInputPath" value="" />
-      <method v="2">
-        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
-      </method>
-    </configuration>
+  <component name="RunManager" selected="Cargo.Test reference_tap_tests::test_ref_tap_err">
     <configuration name="Run" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="buildProfileId" value="dev" />
       <option name="command" value="run --package pipei --bin pipei" />
@@ -183,9 +189,8 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test lib::tests" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="buildProfileId" value="test" />
-      <option name="command" value="test --package pipei --lib tests" />
+    <configuration name="Test mutation_tests" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package pipei --lib mutation_tests" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <envs />
       <option name="emulateTerminal" value="true" />
@@ -201,8 +206,8 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test tests::check_reusability" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package pipei --lib tests::check_reusability -- --exact" />
+    <configuration name="Test mutation_tests::tap_with_conditional_mutation" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package pipei --lib mutation_tests::tap_with_conditional_mutation -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <envs />
       <option name="emulateTerminal" value="true" />
@@ -218,8 +223,8 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test tests::server_check" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package pipei --lib tests::server_check -- --exact" />
+    <configuration name="Test reference_tap_tests::test_ref_tap_err" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package pipei --lib reference_tap_tests::test_ref_tap_err -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <envs />
       <option name="emulateTerminal" value="true" />
@@ -235,9 +240,25 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test tests::test_pipe_mutable_borrow" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="buildProfileId" value="test" />
-      <option name="command" value="test --package pipei --lib tests::test_pipe_mutable_borrow -- --exact" />
+    <configuration name="Test tests::tap_extended_clausure" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package pipei --lib tests::tap_extended_clausure -- --exact" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <envs />
+      <option name="emulateTerminal" value="true" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="withSudo" value="false" />
+      <option name="buildTarget" value="REMOTE" />
+      <option name="backtrace" value="SHORT" />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="Test tests::tap_extended_mut" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package pipei --lib tests::tap_extended_mut -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <envs />
       <option name="emulateTerminal" value="true" />
@@ -255,11 +276,11 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Cargo.Test tests::check_reusability" />
-        <item itemvalue="Cargo.Test tests::server_check" />
-        <item itemvalue="Cargo.Test lib::tests" />
-        <item itemvalue="Cargo.Doctest of pipei (line 18)" />
-        <item itemvalue="Cargo.Test tests::test_pipe_mutable_borrow" />
+        <item itemvalue="Cargo.Test reference_tap_tests::test_ref_tap_err" />
+        <item itemvalue="Cargo.Test tests::tap_extended_mut" />
+        <item itemvalue="Cargo.Test mutation_tests::tap_with_conditional_mutation" />
+        <item itemvalue="Cargo.Test mutation_tests" />
+        <item itemvalue="Cargo.Test tests::tap_extended_clausure" />
       </list>
     </recent_temporary>
   </component>
@@ -315,7 +336,9 @@
       <workItem from="1769673475481" duration="230000" />
       <workItem from="1769704067747" duration="164000" />
       <workItem from="1769704270256" duration="1058000" />
-      <workItem from="1769705479800" duration="5966000" />
+      <workItem from="1769705479800" duration="6428000" />
+      <workItem from="1770287831296" duration="455000" />
+      <workItem from="1770393920243" duration="14012000" />
     </task>
     <task id="LOCAL-00001" summary="first commit">
       <option name="closed" value="true" />
@@ -493,7 +516,23 @@
       <option name="project" value="LOCAL" />
       <updated>1769673589396</updated>
     </task>
-    <option name="localTasksCounter" value="23" />
+    <task id="LOCAL-00023" summary="FnOnce -&gt; FnMut / FnMut for Mut / owned to make partial  application better">
+      <option name="closed" value="true" />
+      <created>1769711658118</created>
+      <option name="number" value="00023" />
+      <option name="presentableId" value="LOCAL-00023" />
+      <option name="project" value="LOCAL" />
+      <updated>1769711658118</updated>
+    </task>
+    <task id="LOCAL-00024" summary="FnOnce -&gt; FnMut / FnMut for Mut / owned to make partial  application better">
+      <option name="closed" value="true" />
+      <created>1769711687118</created>
+      <option name="number" value="00024" />
+      <option name="presentableId" value="LOCAL-00024" />
+      <option name="project" value="LOCAL" />
+      <updated>1769711687118</updated>
+    </task>
+    <option name="localTasksCounter" value="25" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -514,6 +553,7 @@
     <MESSAGE value="first commit" />
     <MESSAGE value="new version" />
     <MESSAGE value="removing pipe_ref" />
-    <option name="LAST_COMMIT_MESSAGE" value="removing pipe_ref" />
+    <MESSAGE value="FnOnce -&gt; FnMut / FnMut for Mut / owned to make partial  application better" />
+    <option name="LAST_COMMIT_MESSAGE" value="FnOnce -&gt; FnMut / FnMut for Mut / owned to make partial  application better" />
   </component>
 </project>

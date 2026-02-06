@@ -52,17 +52,7 @@ pub trait ImplCurry<const ARITY: usize, Args, AState, RState, MARK, A0: ?Sized, 
 }
 
 /// Internal mechanism: Prepares a step with a projection.
-pub trait ImplCurryWith<
-    const ARITY: usize,
-    Args,
-    AState,
-    PState,
-    RState,
-    A0: ?Sized,
-    P,
-    T: ?Sized,
-    R: ?Sized,
->
+pub trait ImplCurryWith<const ARITY: usize, Args, AState, PState, RState, A0: ?Sized, P, R: ?Sized>
 {
     type Curry<'a>
     where
@@ -125,9 +115,9 @@ impl<const ARITY: usize, AState, RState, T> Tap<ARITY, AState, RState> for T {}
 
 /// Extension trait for running side effects on a projection of the value.
 pub trait TapWith<const ARITY: usize, AState, PState, RState> {
-    /// Projects the value, runs a side-effect, and returns the original value.
+    /// Projects the value into Option, runs a side-effect if Some, and returns the original value.
     ///
-    /// Useful for focusing on a specific field for validation or modification.
+    /// Useful for control flow, and for focusing on a specific field for validation or modification.
     ///
     /// # Example
     /// ```rust
@@ -137,12 +127,12 @@ pub trait TapWith<const ARITY: usize, AState, PState, RState> {
     ///
     /// let c = Config { id: 10 };
     /// // Explicit type often required to distinguish between mutable/immutable source paths
-    /// c.tap_with(|c: &Config| &c.id, check)();
+    /// c.tap_with(|c: &Config| Some(&c.id), check)();
     /// ```
     #[inline(always)]
-    fn tap_with<'a, R, F, P, T: ?Sized, Args>(self, proj: P, f: F) -> F::Curry<'a>
+    fn tap_with<'a, R, F, P, Args>(self, proj: P, f: F) -> F::Curry<'a>
     where
-        F: ImplCurryWith<ARITY, Args, AState, PState, RState, Self, P, T, R>,
+        F: ImplCurryWith<ARITY, Args, AState, PState, RState, Self, P, R>,
         Self: Sized,
     {
         f.curry_with(self, proj)
@@ -171,20 +161,20 @@ macro_rules! impl_arity {
             }
 
             #[cfg(feature = $feat)]
-            impl<F, A0, $($Args,)* R> ImplCurry<$N, $TupleType, Mut, Own, PipeMark, A0, R> for F
-            where F: for<'b> FnMut(&'b mut A0, $($Args),*) -> R {
-                type Curry<'a> = impl FnMut($($Args),*) -> R where F: 'a, A0: 'a;
-                #[inline(always)] fn curry<'a>(mut self, mut arg0: A0) -> Self::Curry<'a> {
-                    move |$($Args),*| self(&mut arg0, $($Args),*)
-                }
-            }
-
-            #[cfg(feature = $feat)]
             impl<F, A0, $($Args,)* R> ImplCurry<$N, $TupleType, Own, Own, PipeMark, A0, R> for F
             where F: FnOnce(A0, $($Args),*) -> R {
                 type Curry<'a> = impl FnOnce($($Args),*) -> R where F: 'a, A0: 'a;
                 #[inline(always)] fn curry<'a>(self, arg0: A0) -> Self::Curry<'a> {
                     move |$($Args),*| self(arg0, $($Args),*)
+                }
+            }
+
+            #[cfg(feature = $feat)]
+            impl<F, A0, $($Args,)* R> ImplCurry<$N, $TupleType, Mut, Own, PipeMark, A0, R> for F
+            where F: for<'b> FnMut(&'b mut A0, $($Args),*) -> R {
+                type Curry<'a> = impl FnMut($($Args),*) -> R where F: 'a, A0: 'a;
+                #[inline(always)] fn curry<'a>(mut self, mut arg0: A0) -> Self::Curry<'a> {
+                    move |$($Args),*| self(&mut arg0, $($Args),*)
                 }
             }
 
@@ -200,35 +190,43 @@ macro_rules! impl_arity {
 
             #[cfg(feature = $feat)]
             impl<F, A0, $($Args,)* R> ImplCurry<$N, $TupleType, Mut, Own, TapMark, A0, R> for F
-            where F: for<'b> FnOnce(&'b mut A0, $($Args),*) -> R {
+            where F: for<'b> FnMut(&'b mut A0, $($Args),*) -> R {
                 type Curry<'a> = impl FnOnce($($Args),*) -> A0 where F: 'a, A0: 'a;
-                #[inline(always)] fn curry<'a>(self, mut arg0: A0) -> Self::Curry<'a> {
+                #[inline(always)] fn curry<'a>(mut self, mut arg0: A0) -> Self::Curry<'a> {
                     move |$($Args),*| { self(&mut arg0, $($Args),*); arg0 }
                 }
             }
 
             // --- Tap With (Projection) ---
             #[cfg(feature = $feat)]
-            impl<F, P, A0, T: ?Sized, $($Args,)* R> ImplCurryWith<$N, $TupleType, Imm, Imm, Own, A0, P, T, R> for F
+            impl<F, P, A0, T: ?Sized, $($Args,)* R> ImplCurryWith<$N, $TupleType, Imm, Imm, Own, A0, P, R> for F
             where
-                P: for<'b> FnOnce(&'b A0) -> &'b T,
+                P: for<'b> FnOnce(&'b A0) -> Option<&'b T>,
                 F: for<'b> FnOnce(&'b T, $($Args),*) -> R
             {
                 type Curry<'a> = impl FnOnce($($Args),*) -> A0 where F: 'a, A0: 'a, P: 'a;
                 #[inline(always)] fn curry_with<'a>(self, arg0: A0, proj: P) -> Self::Curry<'a> {
-                    move |$($Args),*| { self(proj(&arg0), $($Args),*); arg0 }
+                    move |$($Args),*| {
+                        // self(proj(&arg0), $($Args),*);
+                        if let Some(v) = proj(&arg0) { self(v, $($Args),*); }
+                        arg0
+                    }
                 }
             }
 
             #[cfg(feature = $feat)]
-            impl<F, P, A0, T: ?Sized, $($Args,)* R> ImplCurryWith<$N, $TupleType, Mut, Mut, Own, A0, P, T, R> for F
+            impl<F, P, A0, T: ?Sized, $($Args,)* R> ImplCurryWith<$N, $TupleType, Mut, Mut, Own, A0, P, R> for F
             where
-                P: for<'b> FnOnce(&'b mut A0) -> &'b mut T,
-                F: for<'b> FnOnce(&'b mut T, $($Args),*) -> R
+                P: for<'b> FnMut(&'b mut A0) -> Option<&'b mut T>,
+                F: for<'b> FnMut(&'b mut T, $($Args),*) -> R
             {
                 type Curry<'a> = impl FnOnce($($Args),*) -> A0 where F: 'a, A0: 'a, P: 'a;
-                #[inline(always)] fn curry_with<'a>(self, mut arg0: A0, proj: P) -> Self::Curry<'a> {
-                    move |$($Args),*| { self(proj(&mut arg0), $($Args),*); arg0 }
+                #[inline(always)] fn curry_with<'a>(mut self, mut arg0: A0, mut proj: P) -> Self::Curry<'a> {
+                    move |$($Args),*| {
+                        // self(proj(&mut arg0), $($Args),*);
+                        if let Some(v) = proj(&mut arg0) { self(v, $($Args),*); }
+                        arg0
+                    }
                 }
             }
         };
@@ -301,7 +299,7 @@ mod tests {
 
         let c = Container { val: 10 };
         // Explicit typing needed to resolve ambiguity between Imm and Mut source paths
-        let res = c.tap_with(|x: &Container| &x.val, check_val)();
+        let res = c.tap_with(|x: &Container| Some(&x.val), check_val)();
         assert_eq!(res.val, 10);
     }
 
@@ -315,7 +313,7 @@ mod tests {
         }
 
         let c = Container { val: 10 };
-        let res = c.tap_with(|x| &mut x.val, add_one)();
+        let res = c.tap_with(|x| Some(&mut x.val), add_one)();
         assert_eq!(res.val, 11);
     }
 
@@ -399,8 +397,8 @@ mod tests {
             Some(high.pipe(Threshold::check)),
         ];
 
-        assert_eq!(validators[0].take().unwrap()(20), true);
-        assert_eq!(validators[1].take().unwrap()(20), false);
+        assert!(validators[0].take().unwrap()(20));
+        assert!(!validators[1].take().unwrap()(20));
     }
 
     #[test]
@@ -420,11 +418,31 @@ mod tests {
             port: 8080,
         };
 
-        (&s).tap_with(|x| x.ip.as_bytes(), check_ipv4)();
+        (&s).tap_with(|x| Some(x.ip.as_bytes()), check_ipv4)();
         assert_eq!(s.port, 8080);
 
-        let s = s.tap_with(|x| x.ip.as_bytes(), check_ipv4)();
+        let s = s.tap_with(|x| Some(x.ip.as_bytes()), check_ipv4)();
         assert_eq!(s.port, 8080);
+    }
+
+    #[test]
+    fn tap_extended() {
+        fn assert_lt(x: &i32, n: i32) {
+            assert!(*x < n)
+        }
+
+        let val = 0.tap_with(|x| if *x < 5 { Some(x) } else { None }, assert_lt)(5);
+        assert_eq!(val, 0)
+    }
+
+    #[test]
+    fn tap_extended_mut() {
+        fn take(x: &mut i32, n: i32) {
+            *x -= n;
+        }
+
+        let val = 10.tap_with(|x| if *x >= 5 { Some(x) } else { None }, take)(5);
+        assert_eq!(val, 5)
     }
 
     #[test]
@@ -448,5 +466,275 @@ mod tests {
         let discounted = prices.map(apply_discount);
 
         assert_eq!(discounted, [80.0, 160.0, 240.0]);
+    }
+}
+
+#[cfg(test)]
+mod extended_tap_tests {
+    use super::*;
+
+    fn log_val(_v: &i32) {}
+    fn log_str(_s: &&str) {}
+    fn mutate_val(v: &mut i32) {
+        *v += 10;
+    }
+
+    #[test]
+    fn test_simulate_tap_some() {
+        let opt = Some(42);
+        let res = opt.tap_with(|x: &Option<i32>| x.as_ref(), log_val)();
+        assert_eq!(res, Some(42));
+
+        let none: Option<i32> = None;
+        let res_none = none.tap_with(|x: &Option<i32>| x.as_ref(), log_val)();
+        assert_eq!(res_none, None);
+    }
+
+    #[test]
+    fn test_simulate_tap_ok() {
+        let res: Result<i32, &str> = Ok(100);
+        let final_res = res.tap_with(|x: &Result<i32, &str>| x.as_ref().ok(), log_val)();
+        assert_eq!(final_res, Ok(100));
+    }
+
+    #[test]
+    fn test_simulate_tap_err() {
+        let res: Result<i32, &str> = Err("critical failure");
+        let final_res = res.tap_with(|x: &Result<i32, &str>| x.as_ref().err(), log_str)();
+        assert_eq!(final_res, Err("critical failure"));
+    }
+
+    #[test]
+    fn test_simulate_conditional_mutation() {
+        let val = Some(5);
+        let res = val.tap_with(|x: &mut Option<i32>| x.as_mut(), mutate_val)();
+        assert_eq!(res, Some(15));
+    }
+
+    #[test]
+    fn test_simulate_tap_dbg() {
+        fn my_dbg<T: core::fmt::Debug>(_v: &T) {}
+        let value = 500;
+
+        let res = value.tap_with(
+            |x: &i32| {
+                #[cfg(debug_assertions)]
+                {
+                    Some(x)
+                }
+                #[cfg(not(debug_assertions))]
+                {
+                    None
+                }
+            },
+            my_dbg,
+        )();
+
+        assert_eq!(res, 500);
+    }
+}
+
+#[cfg(test)]
+mod reference_tap_tests {
+    use super::*;
+
+    fn log_val(_v: &i32) {}
+    fn log_str(_s: &str) {}
+    fn mutate_val(v: &mut i32) {
+        *v += 10;
+    }
+
+    #[test]
+    fn test_ref_tap_some() {
+        let opt = Some(42);
+        let _ = (&opt).tap_with(|x: &&Option<i32>| x.as_ref(), log_val)();
+        assert_eq!(opt, Some(42));
+    }
+
+    #[test]
+    fn test_ref_tap_ok() {
+        let res: Result<i32, &str> = Ok(100);
+        let _ = (&res).tap_with(|x: &&Result<i32, &str>| x.as_ref().ok(), log_val)();
+        assert_eq!(res, Ok(100));
+    }
+
+    #[test]
+    fn test_ref_tap_err() {
+        let res: Result<i32, &str> = Err("fail").tap_with(|x| x.err(), log_str)();
+        assert_eq!(res.err(), Some("fail"));
+        assert_eq!(res, Err("fail"));
+    }
+
+    #[test]
+    fn test_mut_ref_tap_some() {
+        let mut val = Some(5);
+        let _ = (&mut val).tap_with(|x: &mut &mut Option<i32>| x.as_mut(), mutate_val)();
+        assert_eq!(val, Some(15));
+    }
+
+    #[test]
+    fn test_ref_tap_dbg_style() {
+        fn check_ref(v: &&i32) {
+            assert_eq!(**v, 500);
+        }
+        let value = 500;
+
+        let _ = (&value).tap_with(
+            |x: &&i32| {
+                #[cfg(debug_assertions)]
+                {
+                    Some(x)
+                }
+                #[cfg(not(debug_assertions))]
+                {
+                    None
+                }
+            },
+            check_ref,
+        )();
+
+        assert_eq!(value, 500);
+    }
+}
+
+#[cfg(test)]
+mod no_std_tests {
+    extern crate alloc;
+    use crate::TapWith;
+    use alloc::string::String;
+
+    #[derive(Debug)]
+    struct Request {
+        url: String,
+        attempts: u32,
+    }
+
+    static mut AUDIT_CALLED: bool = false;
+    static mut RETRY_CALLED: bool = false;
+    static mut TRACE_CALLED: bool = false;
+
+    fn log_audit(_url: &str, _id: u32) {
+        unsafe {
+            AUDIT_CALLED = true;
+        }
+    }
+
+    fn log_retry(_err: &str, _count: u32) {
+        unsafe {
+            RETRY_CALLED = true;
+        }
+    }
+
+    fn log_trace(_req: &Request, _label: &str) {
+        unsafe {
+            TRACE_CALLED = true;
+        }
+    }
+
+    #[test]
+    fn test_tap_with_no_std_workflow() {
+        // Reset flags for fresh test run
+        unsafe {
+            AUDIT_CALLED = false;
+            RETRY_CALLED = false;
+            TRACE_CALLED = false;
+        }
+
+        let req = Request {
+            url: String::from("https://api.rs"),
+            attempts: 3,
+        };
+
+        let _ = (&req).tap_with(|r| Some(r.url.as_str()), log_audit)(101);
+
+        let res: Result<Request, &str> =
+            Err("Timeout").tap_with(|r| r.as_ref().err().copied(), log_retry)(req.attempts);
+
+        let final_req = req.tap_with(
+            |r| {
+                #[cfg(debug_assertions)]
+                {
+                    Some(r)
+                }
+                #[cfg(not(debug_assertions))]
+                {
+                    None
+                }
+            },
+            log_trace,
+        )("FINAL_STATE");
+
+        // Use matches! to check Result without requiring Debug on the Request type
+        assert!(matches!(res, Err("Timeout")));
+        assert_eq!(final_req.attempts, 3);
+
+        unsafe {
+            assert!(AUDIT_CALLED);
+            assert!(RETRY_CALLED);
+            #[cfg(debug_assertions)]
+            assert!(TRACE_CALLED);
+        }
+    }
+}
+#[cfg(test)]
+mod mutation_tests {
+    use super::*;
+
+    struct Counter {
+        count: i32,
+    }
+
+    struct Wrapper {
+        inner: Counter,
+    }
+
+    fn increment(c: &mut Counter) {
+        c.count += 1;
+    }
+
+    fn add_ten(val: &mut i32) {
+        *val += 10;
+    }
+
+    #[test]
+    fn tap_with_mutate_struct() {
+        let mut wrapper = Wrapper {
+            inner: Counter { count: 0 },
+        };
+
+        let res = (&mut wrapper).tap_with(|w| Some(&mut w.inner), increment)();
+
+        assert_eq!(res.inner.count, 1);
+    }
+
+    #[test]
+    fn tap_with_mutate_primitive_field() {
+        let mut counter = Counter { count: 5 };
+
+        let res = (&mut counter).tap_with(|c| Some(&mut c.count), add_ten)();
+
+        assert_eq!(res.count, 15);
+    }
+
+    #[test]
+    fn tap_with_conditional_mutation() {
+        let value = 100;
+
+        fn conditional_proj(v: &mut i32) -> Option<&mut i32> {
+            if *v > 50 { Some(v) } else { None }
+        }
+
+        let res = value.tap_with(conditional_proj, add_ten)();
+
+        assert_eq!(res, 110);
+    }
+
+    #[test]
+    fn tap_with_owned_to_mut_projection() {
+        let counter = Counter { count: 0 };
+
+        let res = counter.tap_with(|c: &mut Counter| Some(&mut c.count), add_ten)();
+
+        assert_eq!(res.count, 10);
     }
 }

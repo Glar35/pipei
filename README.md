@@ -75,27 +75,40 @@ assert_eq!(discounted, [80.0, 160.0, 240.0]);
 
 ## `TapWith`
 
-Runs a side-effect on a projection of the value, then returns the original value.
+Runs a side-effect on a projection of the value, then returns the original value. 
+The side-effect only executes if the projection returns `Some`. 
+This allows `tap_with` to handle field inspection, conditional flows (tap_ok, tap_some), and debug-only operations.
 
 ```rust
 use pipei::TapWith;
 
-struct Server { ip: String, port: u16 }
+struct Request { url: String, attempts: u32 }
 
-fn check_ipv4(bytes: &[u8]) {
-    assert!(bytes.contains(&b'.'));
-}
+fn log_audit(url: &str, id: u32) { /* */ }
+fn log_retry(err: &str, count: u32) {  /* */ }
+fn log_trace(req: &Request, label: &str) {  /* */  }
 
-let s = Server { ip: "127.0.0.1".into(), port: 8080 };
+let req = Request { url: "https://api.rs".into(), attempts: 3 };
 
-// Alternatively: let s = s.tap_with(...);
-(&s).tap_with(|x| x.ip.as_bytes(), check_ipv4)();
+// tap on a (projection of a) field
+(&req).tap_with(|r| Some(r.url.as_str()), log_audit)(101);
 
-assert_eq!(s.port, 8080);
+// Simulating tap_err (only tap an error)
+let res: Result<Request, &str> = Err("Timeout")
+    .tap_with(|x| x.err(), log_retry)(req.attempts);
+
+// Simulating tap_dbg (only tap in debug mode)
+let final_req = req.tap_with(|r| {
+    #[cfg(debug_assertions)] { Some(r) }
+    #[cfg(not(debug_assertions))] { None }
+    }, log_trace)("FINAL_STATE");
+
+assert_eq!(res.unwrap_err(), "Timeout");
+assert_eq!(final_req.attempts, 3);
 ```
 
 
-## Comparison with the [tap](https://crates.io/crates/tap) crate
+## Comparison with the `tap` crate
 
 `pipei` generalizes `tap` to support multi-argument functions, reducing syntactic noise and simplifying control flow when pipelines involve `Result` or `Option` types.
 
