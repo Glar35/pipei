@@ -1,12 +1,18 @@
 [package]
 name = "pipei"
-version = "0.2.9"
-edition = "2024"
-    description = "Generalized pipe and tap for multi-argument function chaining."
-keywords = ["functional", "pipe", "tap", "no_std", "chaining"]
+version = "0.3.0"
+edition = "2021"
+description = "Generalized pipe and tap traits for partial application and multi-argument chaining."
+keywords = ["pipe", "tap", "chaining", "curry", "functional"]
+categories = ["rust-patterns", "no-std", "development-tools::debugging"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/Glar35/pipei"
 documentation = "https://docs.rs/pipei"
+readme = "README.md"
+include = [
+    "src/**/*",
+    "README.md",
+]
 
 [dependencies]
 

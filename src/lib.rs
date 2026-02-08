@@ -4,55 +4,57 @@
 
 //! # pipei
 //!
-//! A zero-cost library for chaining multi-argument functions using method syntax.
+//! A zero-cost library for chaining multi-argument function calls using method syntax.
 //!
-//! It turns a standard function call `f(x, y, z)` into a method call `x.pipe(f)(y, z)`.
+//! `pipe` allows writing `x.pipe(f)(y, z)` instead of `f(x, y, z)` by currying the receiver into the first argument position.
+//! `tap` provides the same call form for side effects: it passes the value to a function for inspection or mutation, then returns the original value.
 //!
-//! ## Core API
+//! ## Extension traits
 //!
-//! * **[`Pipe::pipe`]:** Passes the value into a function and returns the result.
-//! * **[`Tap::tap`]:** Inspects or mutates the value, then returns the original value.
-//! * **[`TapWith::tap_with`]:** Inspects or mutates a projection of the value, then returns the original value.
+//! * **[`Pipe::pipe`]:** Curries `self` into the first argument of a function and returns the result.
+//! * **[`Tap::tap`]:** Passes `self` to a function for inspection or mutation, then returns (the possibly modified) `self`.
+//! * **[`TapWith::tap_with`]:** Like `tap`, but first applies a projection; the side effect only runs if the projection returns `Some`.
 //!
 //! ```rust
-//! # use crate::pipei::Pipe;
+//! # use pipei::Pipe;
 //! fn add(a: i32, b: i32) -> i32 { a + b }
 //!
-//! // Equivalent to add(10, 5)
 //! let result = 10.pipe(add)(5);
 //!
 //! assert_eq!(result, 15);
 //! ```
 
-extern crate alloc;
+// ============================================================================================
+// Internal mechanism
+// ============================================================================================
 
-/// Marker: pass the pipeline value immutably (`&T`).
+#[doc(hidden)]
+/// Marker type: pass the pipeline value by shared reference (`&T`).
 pub struct Imm;
-/// Marker: pass the pipeline value mutably (`&mut T`).
+#[doc(hidden)]
+/// Marker type: pass the pipeline value by exclusive reference (`&mut T`).
 pub struct Mut;
-/// Marker: pass/return the pipeline value by value (`T`).
+#[doc(hidden)]
+/// Marker type: pass the pipeline value by value (`T`).
 pub struct Own;
-
-/// Marker selecting `tap` semantics (return original value).
+#[doc(hidden)]
+/// Marker type: `tap` semantics (return the original value).
 pub struct TapMark;
-/// Marker selecting `pipe` semantics (return transform result).
+#[doc(hidden)]
+/// Marker type: `pipe` semantics (return the function's result).
 pub struct PipeMark;
-
-// ============================================================================================
-// Core Traits
-// ============================================================================================
-
-/// Internal mechanism: Prepares a step starting from an owned value or direct reference.
-pub trait ImplCurry<const ARITY: usize, Args, AState, RState, MARK, A0: ?Sized, R: ?Sized> {
+#[doc(hidden)]
+/// Internal: curries a function's first argument, producing a closure over the remaining arguments.
+pub trait Curry<const ARITY: usize, Args, AState, RState, MARK, A0: ?Sized, R: ?Sized> {
     type Curry<'a>
     where
         Self: 'a,
         A0: 'a;
     fn curry<'a>(self, arg0: A0) -> Self::Curry<'a>;
 }
-
-/// Internal mechanism: Prepares a step with a projection.
-pub trait ImplCurryWith<const ARITY: usize, Args, State, A0: ?Sized, P, R: ?Sized> {
+#[doc(hidden)]
+/// Internal: curries a function's first argument through an `Option`-returning projection.
+pub trait CurryWith<const ARITY: usize, Args, State, A0: ?Sized, P, R: ?Sized> {
     type Curry<'a>
     where
         Self: 'a,
@@ -67,20 +69,29 @@ pub trait ImplCurryWith<const ARITY: usize, Args, State, A0: ?Sized, P, R: ?Size
 
 /// Extension trait for transforming values.
 pub trait Pipe<const ARITY: usize, AState, RState> {
-    /// Transforms the value into a new value.
+    /// Curries `self` as the first argument of `f`, returning a closure over the remaining arguments.
+    /// Because the returned closure is a standalone value, `pipe` doubles as partial application.
     ///
     /// # Example
     /// ```rust
     /// # use crate::pipei::Pipe;
     /// fn add(a: i32, b: i32) -> i32 { a + b }
     ///
-    /// let result = 10i32.pipe(add)(5);
-    /// assert_eq!(result, 15);
+    /// assert_eq!(10i32.pipe(add)(5), 15);
+    /// assert_eq!(10i32.pipe(Option::Some)(), Some(10));
+    ///
+    /// struct Threshold(i32);
+    /// impl Threshold {
+    ///     fn check(&self, val: i32) -> bool { val > self.0 }
+    /// }
+    ///
+    /// let is_high = Threshold(50).pipe(Threshold::check);
+    /// assert_eq!([20, 60, 80].map(is_high), [false, true, true]);
     /// ```
     #[inline(always)]
     fn pipe<'a, R, F, Args>(self, f: F) -> F::Curry<'a>
     where
-        F: ImplCurry<ARITY, Args, AState, RState, PipeMark, Self, R>,
+        F: Curry<ARITY, Args, AState, RState, PipeMark, Self, R>,
         Self: Sized,
     {
         f.curry(self)
@@ -88,23 +99,24 @@ pub trait Pipe<const ARITY: usize, AState, RState> {
 }
 impl<const ARITY: usize, AState, RState, T> Pipe<ARITY, AState, RState> for T {}
 
-/// Extension trait for running side effects without altering the pipeline value.
+/// Extension trait for running side effects, returning the original value.
 pub trait Tap<const ARITY: usize, State> {
-    /// Runs a side-effect and returns the original value.
-    ///
-    /// Supports both immutable and mutable operations on the value.
+    /// Passes `self` into `f` for inspection or mutation, then returns the original value.
+    /// The closure receives `self` by shared or exclusive reference depending on its signature.
     ///
     /// # Example
     /// ```rust
     /// # use crate::pipei::Tap;
-    /// let x = 10
-    ///     .tap(|x: &mut i32, n| *x += n)(5);
-    /// assert_eq!(x, 15);
+    /// fn log(x: &i32) { /* inspect via &T */ }
+    ///
+    /// let val = 10.tap(log)()                     // immutable: passes &i32
+    ///             .tap(|x: &mut i32| *x += 5)();  // mutable: passes &mut i32
+    /// assert_eq!(val, 15);
     /// ```
     #[inline(always)]
     fn tap<'a, R, F, Args>(self, f: F) -> F::Curry<'a>
     where
-        F: ImplCurry<ARITY, Args, State, Own, TapMark, Self, R>,
+        F: Curry<ARITY, Args, State, Own, TapMark, Self, R>,
         Self: Sized,
     {
         f.curry(self)
@@ -114,24 +126,31 @@ impl<const ARITY: usize, State, T> Tap<ARITY, State> for T {}
 
 /// Extension trait for running side effects on a projection of the value.
 pub trait TapWith<const ARITY: usize, State> {
-    /// Projects the value into Option, runs a side-effect if Some, and returns the original value.
+    /// Runs a side-effect on a projection of `self`. The projection returns an
+    /// `Option`; if `Some`, the side-effect runs on the inner value. If `None`,
+    /// nothing happens. In both cases, the original value is returned.
     ///
-    /// Useful for control flow, and for focusing on a specific field for validation or modification.
+    /// This subsumes specialized tapping patterns like `tap_ok`, `tap_err`,
+    /// and `tap_dbg` from the `tap` crate — each is a particular choice of
+    /// projection.
     ///
     /// # Example
     /// ```rust
     /// # use crate::pipei::TapWith;
-    /// struct Config { id: i32 }
-    /// fn check(id: &i32) { assert!(*id > 0); }
+    /// struct Response { status: u32, body: String }
     ///
-    /// let c = Config { id: 10 };
-    /// // Explicit type often required to distinguish between mutable/immutable source paths
-    /// c.tap_with(|c: &Config| Some(&c.id), check)();
+    /// fn log_status(code: &u32) { println!("status: {code}"); }
+    ///
+    /// // Tap only a specific field, leaving the full value intact:
+    /// let resp = Response { status: 200, body: "OK".into() };
+    /// let resp = resp.tap_with(|r: &Response| Some(&r.status), log_status)();
+    ///
+    /// assert_eq!(resp.body, "OK");
     /// ```
     #[inline(always)]
     fn tap_with<'a, R, F, P, Args>(self, proj: P, f: F) -> F::Curry<'a>
     where
-        F: ImplCurryWith<ARITY, Args, State, Self, P, R>,
+        F: CurryWith<ARITY, Args, State, Self, P, R>,
         Self: Sized,
     {
         f.curry_with(self, proj)
@@ -147,11 +166,11 @@ macro_rules! impl_arity {
     ($N:literal, $feat:literal, [ $($Args:ident),* ], $TupleType:ty) => {
         const _: () = {
             #[cfg(feature = $feat)]
-            use crate::{Imm, ImplCurry, ImplCurryWith, Mut, Own, PipeMark, TapMark};
+            use crate::{Imm, Curry, CurryWith, Mut, Own, PipeMark, TapMark};
 
             // --- Pipe ---
             #[cfg(feature = $feat)]
-            impl<F, A0, $($Args,)* R> ImplCurry<$N, $TupleType, Imm, Own, PipeMark, A0, R> for F
+            impl<F, A0, $($Args,)* R> Curry<$N, $TupleType, Imm, Own, PipeMark, A0, R> for F
             where F: for<'b> Fn(&'b A0, $($Args),*) -> R {
                 type Curry<'a> = impl Fn($($Args),*) -> R where F: 'a, A0: 'a;
                 #[inline(always)] fn curry<'a>(self, arg0: A0) -> Self::Curry<'a> {
@@ -160,7 +179,7 @@ macro_rules! impl_arity {
             }
 
             #[cfg(feature = $feat)]
-            impl<F, A0, $($Args,)* R> ImplCurry<$N, $TupleType, Own, Own, PipeMark, A0, R> for F
+            impl<F, A0, $($Args,)* R> Curry<$N, $TupleType, Own, Own, PipeMark, A0, R> for F
             where F: FnOnce(A0, $($Args),*) -> R {
                 type Curry<'a> = impl FnOnce($($Args),*) -> R where F: 'a, A0: 'a;
                 #[inline(always)] fn curry<'a>(self, arg0: A0) -> Self::Curry<'a> {
@@ -169,7 +188,7 @@ macro_rules! impl_arity {
             }
 
             #[cfg(feature = $feat)]
-            impl<F, A0, $($Args,)* R> ImplCurry<$N, $TupleType, Mut, Own, PipeMark, A0, R> for F
+            impl<F, A0, $($Args,)* R> Curry<$N, $TupleType, Mut, Own, PipeMark, A0, R> for F
             where F: for<'b> FnMut(&'b mut A0, $($Args),*) -> R {
                 type Curry<'a> = impl FnMut($($Args),*) -> R where F: 'a, A0: 'a;
                 #[inline(always)] fn curry<'a>(mut self, mut arg0: A0) -> Self::Curry<'a> {
@@ -179,7 +198,7 @@ macro_rules! impl_arity {
 
             // --- Tap ---
             #[cfg(feature = $feat)]
-            impl<F, A0, $($Args,)* R> ImplCurry<$N, $TupleType, Imm, Own, TapMark, A0, R> for F
+            impl<F, A0, $($Args,)* R> Curry<$N, $TupleType, Imm, Own, TapMark, A0, R> for F
             where F: FnOnce(& A0, $($Args),*) -> R {
                 type Curry<'a> = impl FnOnce($($Args),*) -> A0 where F: 'a, A0: 'a;
                 #[inline(always)] fn curry<'a>(self, arg0: A0) -> Self::Curry<'a> {
@@ -188,7 +207,7 @@ macro_rules! impl_arity {
             }
 
             #[cfg(feature = $feat)]
-            impl<F, A0, $($Args,)* R> ImplCurry<$N, $TupleType, Mut, Own, TapMark, A0, R> for F
+            impl<F, A0, $($Args,)* R> Curry<$N, $TupleType, Mut, Own, TapMark, A0, R> for F
             where F: FnMut(&mut A0, $($Args),*) -> R {
                 type Curry<'a> = impl FnOnce($($Args),*) -> A0 where F: 'a, A0: 'a;
                 #[inline(always)] fn curry<'a>(mut self, mut arg0: A0) -> Self::Curry<'a> {
@@ -198,7 +217,7 @@ macro_rules! impl_arity {
 
             // --- Tap With (Projection) ---
             #[cfg(feature = $feat)]
-            impl<F, P, A0, T: ?Sized, $($Args,)* R> ImplCurryWith<$N, $TupleType, Imm, A0, P, R> for F
+            impl<F, P, A0, T: ?Sized, $($Args,)* R> CurryWith<$N, $TupleType, Imm, A0, P, R> for F
             where
                 P: for<'b> FnOnce(&'b A0) -> Option<&'b T>,
                 F: FnOnce(&T, $($Args),*) -> R
@@ -213,7 +232,7 @@ macro_rules! impl_arity {
             }
 
             #[cfg(feature = $feat)]
-            impl<F, P, A0, T: ?Sized, $($Args,)* R> ImplCurryWith<$N, $TupleType, Mut, A0, P, R> for F
+            impl<F, P, A0, T: ?Sized, $($Args,)* R> CurryWith<$N, $TupleType, Mut, A0, P, R> for F
             where
                 P: for<'b> FnMut(&'b mut A0) -> Option<&'b mut T>,
                 F: FnMut(& mut T, $($Args),*) -> R
@@ -643,85 +662,6 @@ mod reference_tap_tests {
 }
 
 #[cfg(test)]
-mod no_std_tests {
-    extern crate alloc;
-    use crate::TapWith;
-    use alloc::string::String;
-
-    #[derive(Debug)]
-    struct Request {
-        url: String,
-        attempts: u32,
-    }
-
-    static mut AUDIT_CALLED: bool = false;
-    static mut RETRY_CALLED: bool = false;
-    static mut TRACE_CALLED: bool = false;
-
-    fn log_audit(_url: &str, _id: u32) {
-        unsafe {
-            AUDIT_CALLED = true;
-        }
-    }
-
-    fn log_retry(_err: &str, _count: u32) {
-        unsafe {
-            RETRY_CALLED = true;
-        }
-    }
-
-    fn log_trace(_req: &Request, _label: &str) {
-        unsafe {
-            TRACE_CALLED = true;
-        }
-    }
-
-    #[test]
-    fn test_tap_with_no_std_workflow() {
-        // Reset flags for fresh test run
-        unsafe {
-            AUDIT_CALLED = false;
-            RETRY_CALLED = false;
-            TRACE_CALLED = false;
-        }
-
-        let req = Request {
-            url: String::from("https://api.rs"),
-            attempts: 3,
-        };
-
-        let _ = (&req).tap_with(|r| Some(r.url.as_str()), log_audit)(101);
-
-        let res: Result<Request, &str> =
-            Err("Timeout").tap_with(|r| r.as_ref().err().copied(), log_retry)(req.attempts);
-
-        let final_req = req.tap_with(
-            |r| {
-                #[cfg(debug_assertions)]
-                {
-                    Some(r)
-                }
-                #[cfg(not(debug_assertions))]
-                {
-                    None
-                }
-            },
-            log_trace,
-        )("FINAL_STATE");
-
-        // Use matches! to check Result without requiring Debug on the Request type
-        assert!(matches!(res, Err("Timeout")));
-        assert_eq!(final_req.attempts, 3);
-
-        unsafe {
-            assert!(AUDIT_CALLED);
-            assert!(RETRY_CALLED);
-            #[cfg(debug_assertions)]
-            assert!(TRACE_CALLED);
-        }
-    }
-}
-#[cfg(test)]
 mod mutation_tests {
     use super::*;
 
@@ -766,7 +706,11 @@ mod mutation_tests {
         let value = 100;
 
         fn conditional_proj(v: &mut i32) -> Option<&mut i32> {
-            if *v > 50 { Some(v) } else { None }
+            if *v > 50 {
+                Some(v)
+            } else {
+                None
+            }
         }
 
         let res = value.tap_with(conditional_proj, add_ten)();

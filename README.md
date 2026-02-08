@@ -1,26 +1,28 @@
 # pipe{i}
 
-`pipei` provides a zero-cost, type-safe way to chain multi-argument functions using method syntax. It turns a function call `f(x, y, z)` into a method call `x.pipe(f)(y, z)`. 
-It also includes a `tap` operator for side-effects (logging, mutation) that returns the original value.
+_pipei_ provides a zero-cost, type-safe mechanism for chaining function calls using method syntax, including multi-argument functions.
+It allows writing `x.pipe(f)(y, z)` in place of `f(x, y, z)`, and supports reusable partial application by returning a closure over the remaining arguments.
+The library similarly provides a multi-argument `tap` operator for side effects that returns the original value.
 
-This project is inspired by the [UMCS proposal](https://internals.rust-lang.org/t/weird-syntax-idea-s-for-umcs/19200/35).
-It generalizes the [`tap`](https://crates.io/crates/tap) crate to support multi-argument pipelines.
+This project is inspired by the [UMCS proposal](https://internals.rust-lang.org/t/weird-syntax-idea-s-for-umcs/19200/35). It requires nightly Rust for `#![feature(impl_trait_in_assoc_type)]`.
 
-**Note:** Requires `#![feature(impl_trait_in_assoc_type)]` on nightly.
-
+## Installation
 
 To optimize compile times, enable only the arities you need (from 0 up to 50).
-Use features like `up_to_N` (where `N` is a multiple of 5) or specific individual arity features
+Use `up_to_N` features (available in multiples of 5) or specific individual arity features.
+
 ```toml
 [dependencies]
 pipei = "*" # default: features = ["up_to_5"]
-# pipei = { version = "*", features = ["up_to_20"] }  
+# pipei = { version = "*", features = ["up_to_20", "31"] }  
 # pipei = { version = "*", features = ["0", "1", "3", "4"] }
 ```
 
 ## Basic chaining
 
-`pipe` passes the value into the function and returns the result. `tap` inspects or mutates the input, ignores the result, and returns the original value.
+`pipe` passes the value into the function and returns the result. 
+`tap` passes the value for a side-effect — logging, assertion, mutation — and returns the original value.
+
 
 ```rust
 use pipei::{Pipe, Tap};
@@ -42,14 +44,14 @@ fn add_assign(x: &mut i32, y: i32) { *x += y; }
 
 let val = 2
     .tap(log_val)()         // Immutable: passes &i32
-    .tap(add_assign)(3)     // Mutable: passes &mut i32
+    .tap(add_assign)(3);    // Mutable: passes &mut i32
 
 assert_eq!(val, 5);
 ```
 
 ## Partial Application
 
-`pipe` can pre-fill the first argument of a function, creating a standalone, reusable function that accepts the remaining arguments.
+`pipe` curries the first argument of a function, creating a standalone, reusable function that accepts the remaining arguments.
 
 ```rust
 use pipei::Pipe;
@@ -75,9 +77,9 @@ assert_eq!(discounted, [80.0, 160.0, 240.0]);
 
 ## `TapWith`
 
-Runs a side-effect on a projection of the value, which then returns the original value.
-This is useful for reusing existing functions on a derived value (such as a field). 
-The side-effect executes only if the projection returns `Some`, which enables conditional flows (like `tap_ok`) and debug-only operations.
+`tap_with` takes a projection that returns `Option`; if the result is `Some`, the side-effect runs on the projected value.
+This bridges the gap when a side-effect's signature doesn't match the receiver — the projection adapts one to the other, whether by accessing a field, calling `.as_ref()`, `.as_bytes()`, or any other transformation.
+It subsumes the specialized methods from the [`tap`](https://crates.io/crates/tap) crate (`tap_mut`, `tap_err`, `tap_dbg`, etc.) through a single generic projection.
 
 ```rust
 use pipei::TapWith;
@@ -91,17 +93,17 @@ fn log_trace(req: &Request, label: &str) { /* ... */ }
 
 let mut req = Request { url: "https://api.rs".into(), attempts: 3 };
 
-// tap_mut on a field
+// Simulating tap's `tap_mut` on a field
 (&mut req).tap_with(|r| Some(&mut r.attempts), track_retry)();
 
-// tap_err (only tap on error)
+// Simulating tap's `tap_err` (only tap on error)
 let res = Err::<Request, _>(503)
     .tap_with(|x| x.as_ref().err(), log_status)(req.attempts);
 
 assert_eq!(res.unwrap_err(), 503);
 
 
-// tap_dbg (only tap in debug mode)
+// Simulating tap's `tap_dbg` (only tap in debug mode)
 let final_req = req.tap_with(|r| {
     #[cfg(debug_assertions)] { Some(r) }
     #[cfg(not(debug_assertions))] { None }
@@ -112,12 +114,12 @@ assert_eq!(final_req.attempts, 4);
 ```
 
 
-## Comparison with the `tap` crate
+## Comparison with the _tap_ crate
 
-`pipei` generalizes `tap` to support multi-argument functions, reducing syntactic noise and simplifying control flow when pipelines involve `Result` or `Option` types.
+_pipei_ generalizes _tap_ to support multi-argument functions, reducing syntactic noise and simplifying control flow when pipelines involve `Result` or `Option` types.
 
 **Standard Rust:**
-The reading order is inverted ("inside-out"), as `save` is written first, but executes last.
+The reading order is inverted ("inside-out"): `save` is written first, but executes last.
 ```rust
 save(
     composite_onto(
@@ -129,9 +131,9 @@ save(
 );
 ```
 
-**Using `tap`:**
+**Using _tap_:**
 Since `?` applies to the closure, the closure itself returns a `Result`. 
-This forces manual `Ok` wrapping and an extra `?` after the pipe.
+This forces manual `Ok` wrapping and an extra `?` after the `pipe` call.
 ```rust
 load("background.png")?
     .pipe(|bg| {
@@ -143,7 +145,7 @@ load("background.png")?
     .pipe(|img| save(img, "result.png"));
 ```
 
-**Using `pipei`:**
+**Using _pipei_:**
 The flow remains flat and `?` works naturally.
 ```rust
 load("background.png")?
