@@ -75,36 +75,40 @@ assert_eq!(discounted, [80.0, 160.0, 240.0]);
 
 ## `TapWith`
 
-Runs a side-effect on a projection of the value, then returns the original value. 
-The side-effect only executes if the projection returns `Some`. 
-This allows `tap_with` to handle field inspection, conditional flows (tap_ok, tap_some), and debug-only operations.
+Runs a side-effect on a projection of the value, which then returns the original value.
+This is useful for reusing existing functions on a derived value (such as a field). 
+The side-effect executes only if the projection returns `Some`, which enables conditional flows (like `tap_ok`) and debug-only operations.
 
 ```rust
 use pipei::TapWith;
 
+#[derive(Debug)]
 struct Request { url: String, attempts: u32 }
 
-fn log_audit(url: &str, id: u32) { /* */ }
-fn log_retry(err: &str, count: u32) {  /* */ }
-fn log_trace(req: &Request, label: &str) {  /* */  }
+fn track_retry(count: &mut u32) { *count += 1 }
+fn log_status(code: &u32, count: u32) { /* ... */ }
+fn log_trace(req: &Request, label: &str) { /* ... */ }
 
-let req = Request { url: "https://api.rs".into(), attempts: 3 };
+let mut req = Request { url: "https://api.rs".into(), attempts: 3 };
 
-// tap on a (projection of a) field
-(&req).tap_with(|r| Some(r.url.as_str()), log_audit)(101);
+// tap_mut on a field
+(&mut req).tap_with(|r| Some(&mut r.attempts), track_retry)();
 
-// Simulating tap_err (only tap an error)
-let res: Result<Request, &str> = Err("Timeout")
-    .tap_with(|x| x.err(), log_retry)(req.attempts);
+// tap_err (only tap on error)
+let res = Err::<Request, _>(503)
+    .tap_with(|x| x.as_ref().err(), log_status)(req.attempts);
 
-// Simulating tap_dbg (only tap in debug mode)
+assert_eq!(res.unwrap_err(), 503);
+
+
+// tap_dbg (only tap in debug mode)
 let final_req = req.tap_with(|r| {
     #[cfg(debug_assertions)] { Some(r) }
     #[cfg(not(debug_assertions))] { None }
     }, log_trace)("FINAL_STATE");
 
-assert_eq!(res.unwrap_err(), "Timeout");
-assert_eq!(final_req.attempts, 3);
+
+assert_eq!(final_req.attempts, 4);
 ```
 
 

@@ -53,8 +53,9 @@
     </cargoProject>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9a160d57-da59-441c-aa3b-69ef0db1b8be" name="Changes" comment="changed tap_with to accept Some">
+    <list default="true" id="9a160d57-da59-441c-aa3b-69ef0db1b8be" name="Changes" comment="minor changes">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -168,27 +169,10 @@
   <component name="RsExternalLinterProjectSettings">
     <option name="tool" value="Clippy" />
   </component>
-  <component name="RunManager" selected="Cargo.Test tests::tap_extended_inline">
+  <component name="RunManager" selected="Cargo.Test tests::tap_with_doc">
     <configuration name="Run" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="buildProfileId" value="dev" />
       <option name="command" value="run --package pipei --bin pipei" />
-      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
-      <envs />
-      <option name="emulateTerminal" value="true" />
-      <option name="channel" value="DEFAULT" />
-      <option name="requiredFeatures" value="true" />
-      <option name="allFeatures" value="false" />
-      <option name="withSudo" value="false" />
-      <option name="buildTarget" value="REMOTE" />
-      <option name="backtrace" value="SHORT" />
-      <option name="isRedirectInput" value="false" />
-      <option name="redirectInputPath" value="" />
-      <method v="2">
-        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="Test mutation_tests::tap_with_conditional_mutation" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package pipei --lib mutation_tests::tap_with_conditional_mutation -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <envs />
       <option name="emulateTerminal" value="true" />
@@ -272,13 +256,30 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
+    <configuration name="Test tests::tap_with_doc" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package pipei --lib tests::tap_with_doc -- --exact" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <envs />
+      <option name="emulateTerminal" value="true" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="withSudo" value="false" />
+      <option name="buildTarget" value="REMOTE" />
+      <option name="backtrace" value="SHORT" />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Cargo.Test tests::tap_extended_inline" />
+        <item itemvalue="Cargo.Test tests::tap_with_doc" />
         <item itemvalue="Cargo.Test tests::tap_extended_simplified" />
+        <item itemvalue="Cargo.Test tests::tap_extended_inline" />
         <item itemvalue="Cargo.Test reference_tap_tests::test_ref_tap_err" />
         <item itemvalue="Cargo.Test tests::tap_extended_mut" />
-        <item itemvalue="Cargo.Test mutation_tests::tap_with_conditional_mutation" />
       </list>
     </recent_temporary>
   </component>
@@ -338,7 +339,9 @@
       <workItem from="1770287831296" duration="455000" />
       <workItem from="1770393920243" duration="14314000" />
       <workItem from="1770503580511" duration="1118000" />
-      <workItem from="1770553382554" duration="2399000" />
+      <workItem from="1770553382554" duration="2442000" />
+      <workItem from="1770555932314" duration="51000" />
+      <workItem from="1770556039568" duration="5237000" />
     </task>
     <task id="LOCAL-00001" summary="first commit">
       <option name="closed" value="true" />
@@ -540,7 +543,15 @@
       <option name="project" value="LOCAL" />
       <updated>1770422138766</updated>
     </task>
-    <option name="localTasksCounter" value="26" />
+    <task id="LOCAL-00026" summary="minor changes">
+      <option name="closed" value="true" />
+      <created>1770555926216</created>
+      <option name="number" value="00026" />
+      <option name="presentableId" value="LOCAL-00026" />
+      <option name="project" value="LOCAL" />
+      <updated>1770555926216</updated>
+    </task>
+    <option name="localTasksCounter" value="27" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -563,6 +574,7 @@
     <MESSAGE value="removing pipe_ref" />
     <MESSAGE value="FnOnce -&gt; FnMut / FnMut for Mut / owned to make partial  application better" />
     <MESSAGE value="changed tap_with to accept Some" />
-    <option name="LAST_COMMIT_MESSAGE" value="changed tap_with to accept Some" />
+    <MESSAGE value="minor changes" />
+    <option name="LAST_COMMIT_MESSAGE" value="minor changes" />
   </component>
 </project>

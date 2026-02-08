@@ -432,23 +432,53 @@ mod tests {
     }
 
     #[test]
-    fn tap_extended_simplified() {
-        fn assertion(x: &i32) {
-            assert!(*x < 5)
+    fn tap_with_doc() {
+        #[derive(Debug)]
+        struct Request {
+            _url: &'static str,
+            attempts: u32,
         }
 
-        let val = 0.tap_with(|x| Some(x), assertion)();
-        assert_eq!(val, 0)
+        fn track_retry(count: &mut u32) {
+            *count += 1
+        }
+        fn log_status(_code: &u32, _count: u32) { /*   */
+        }
+        fn log_trace(_req: &Request, _label: &str) { /*   */
+        }
+
+        let mut req = Request {
+            _url: "https://api.rs",
+            attempts: 3,
+        };
+
+        // tap_mut a field
+        (&mut req).tap_with(|r| Some(&mut r.attempts), track_retry)();
+
+        assert_eq!(req.attempts, 4);
+
+        // tap_err (only tap on error)
+        let res = Err::<Request, _>(503).tap_with(|x| x.as_ref().err(), log_status)(req.attempts);
+
+        assert_eq!(res.unwrap_err(), 503);
+
+        // tap_dbg (only tap in debug mode)
+        let req = req.tap_with(
+            |r| {
+                #[cfg(debug_assertions)]
+                {
+                    Some(r)
+                }
+                #[cfg(not(debug_assertions))]
+                {
+                    None
+                }
+            },
+            log_trace,
+        )("FINAL_STATE");
+
+        assert_eq!(req.attempts, 4);
     }
-    // // fail case:
-    // #[test]
-    // fn tap_extended_inline() {
-    //
-    //     let val = 0.tap_with(|x| Some(x),
-    //                          |x: &i32| assert!(*x < 5)
-    //     )();
-    //     assert_eq!(val, 0)
-    // }
 
     #[test]
     fn tap_extended_mut() {
