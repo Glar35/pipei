@@ -53,11 +53,8 @@
     </cargoProject>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9a160d57-da59-441c-aa3b-69ef0db1b8be" name="Changes" comment="FnOnce -&gt; FnMut / FnMut for Mut / owned to make partial  application better">
+    <list default="true" id="9a160d57-da59-441c-aa3b-69ef0db1b8be" name="Changes" comment="changed tap_with to accept Some">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Cargo.lock" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.lock" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -109,59 +106,60 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Cargo.Doctest of pipei (line 18).executor": "Run",
-    "Cargo.Doctest of tap_with (line 133).executor": "Run",
-    "Cargo.Run.executor": "Run",
-    "Cargo.Test extended_tap_tests.executor": "Run",
-    "Cargo.Test extended_tap_tests::test_simulate_conditional_mutation.executor": "Run",
-    "Cargo.Test extended_tap_tests::test_simulate_tap_dbg.executor": "Run",
-    "Cargo.Test extended_tap_tests::test_simulate_tap_err.executor": "Run",
-    "Cargo.Test lib::tests.executor": "Run",
-    "Cargo.Test mutation_tests.executor": "Run",
-    "Cargo.Test mutation_tests::tap_with_conditional_mutation.executor": "Run",
-    "Cargo.Test no_std_tests (1).executor": "Run",
-    "Cargo.Test no_std_tests.executor": "Run",
-    "Cargo.Test no_std_tests::test_tap_with_no_std_workflow.executor": "Run",
-    "Cargo.Test reference_tap_tests.executor": "Run",
-    "Cargo.Test reference_tap_tests::test_ref_tap_any_dbg.executor": "Run",
-    "Cargo.Test reference_tap_tests::test_ref_tap_err.executor": "Run",
-    "Cargo.Test tap_with_tests.executor": "Run",
-    "Cargo.Test test_pipe0_flexibility.executor": "Run",
-    "Cargo.Test tests::check_reusability.executor": "Run",
-    "Cargo.Test tests::no_std_tests::test_tap_with_no_std_workflow.executor": "Run",
-    "Cargo.Test tests::server_check.executor": "Run",
-    "Cargo.Test tests::tap_extended.executor": "Run",
-    "Cargo.Test tests::tap_extended_clausure.executor": "Run",
-    "Cargo.Test tests::tap_extended_fixed.executor": "Run",
-    "Cargo.Test tests::tap_extended_inline.executor": "Run",
-    "Cargo.Test tests::tap_extended_mut.executor": "Run",
-    "Cargo.Test tests::test_pipe_mutable_borrow.executor": "Run",
-    "Cargo.Test verify_readme_examples.executor": "Run",
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "RunOnceActivity.MCP Project settings loaded": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "RunOnceActivity.rust.reset.selective.auto.import": "true",
-    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
-    "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
-    "git-widget-placeholder": "master",
-    "junie.onboarding.icon.badge.shown": "true",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "org.rust.cargo.project.model.PROJECT_DISCOVERY": "true",
-    "org.rust.cargo.project.model.impl.CargoExternalSystemProjectAware.subscribe.first.balloon": "",
-    "org.rust.first.attach.projects": "true",
-    "settings.editor.selected.configurable": "language.rust.cargo.check",
-    "to.speed.mode.migration.done": "true",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Cargo.Doctest of pipei (line 18).executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Doctest of tap_with (line 133).executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Run.executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test extended_tap_tests.executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test extended_tap_tests::test_simulate_conditional_mutation.executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test extended_tap_tests::test_simulate_tap_dbg.executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test extended_tap_tests::test_simulate_tap_err.executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test lib::tests.executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test mutation_tests.executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test mutation_tests::tap_with_conditional_mutation.executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test no_std_tests (1).executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test no_std_tests.executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test no_std_tests::test_tap_with_no_std_workflow.executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test reference_tap_tests.executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test reference_tap_tests::test_ref_tap_any_dbg.executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test reference_tap_tests::test_ref_tap_err.executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test tap_with_tests.executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test test_pipe0_flexibility.executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test tests::check_reusability.executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test tests::no_std_tests::test_tap_with_no_std_workflow.executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test tests::server_check.executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test tests::tap_extended.executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test tests::tap_extended_clausure.executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test tests::tap_extended_fixed.executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test tests::tap_extended_inline.executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test tests::tap_extended_mut.executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test tests::tap_extended_simplified.executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test tests::test_pipe_mutable_borrow.executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test verify_readme_examples.executor&quot;: &quot;Run&quot;,
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.MCP Project settings loaded&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.rust.reset.selective.auto.import&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
+    &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;org.rust.cargo.project.model.PROJECT_DISCOVERY&quot;: &quot;true&quot;,
+    &quot;org.rust.cargo.project.model.impl.CargoExternalSystemProjectAware.subscribe.first.balloon&quot;: &quot;&quot;,
+    &quot;org.rust.first.attach.projects&quot;: &quot;true&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;language.rust.cargo.check&quot;,
+    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$" />
@@ -170,27 +168,10 @@
   <component name="RsExternalLinterProjectSettings">
     <option name="tool" value="Clippy" />
   </component>
-  <component name="RunManager" selected="Cargo.Test reference_tap_tests::test_ref_tap_err">
+  <component name="RunManager" selected="Cargo.Test tests::tap_extended_inline">
     <configuration name="Run" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="buildProfileId" value="dev" />
       <option name="command" value="run --package pipei --bin pipei" />
-      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
-      <envs />
-      <option name="emulateTerminal" value="true" />
-      <option name="channel" value="DEFAULT" />
-      <option name="requiredFeatures" value="true" />
-      <option name="allFeatures" value="false" />
-      <option name="withSudo" value="false" />
-      <option name="buildTarget" value="REMOTE" />
-      <option name="backtrace" value="SHORT" />
-      <option name="isRedirectInput" value="false" />
-      <option name="redirectInputPath" value="" />
-      <method v="2">
-        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="Test mutation_tests" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package pipei --lib mutation_tests" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <envs />
       <option name="emulateTerminal" value="true" />
@@ -240,8 +221,8 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test tests::tap_extended_clausure" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package pipei --lib tests::tap_extended_clausure -- --exact" />
+    <configuration name="Test tests::tap_extended_inline" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package pipei --lib tests::tap_extended_inline -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <envs />
       <option name="emulateTerminal" value="true" />
@@ -274,13 +255,30 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
+    <configuration name="Test tests::tap_extended_simplified" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package pipei --lib tests::tap_extended_simplified -- --exact" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <envs />
+      <option name="emulateTerminal" value="true" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="withSudo" value="false" />
+      <option name="buildTarget" value="REMOTE" />
+      <option name="backtrace" value="SHORT" />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Cargo.Test tests::tap_extended_inline" />
+        <item itemvalue="Cargo.Test tests::tap_extended_simplified" />
         <item itemvalue="Cargo.Test reference_tap_tests::test_ref_tap_err" />
         <item itemvalue="Cargo.Test tests::tap_extended_mut" />
         <item itemvalue="Cargo.Test mutation_tests::tap_with_conditional_mutation" />
-        <item itemvalue="Cargo.Test mutation_tests" />
-        <item itemvalue="Cargo.Test tests::tap_extended_clausure" />
       </list>
     </recent_temporary>
   </component>
@@ -338,7 +336,9 @@
       <workItem from="1769704270256" duration="1058000" />
       <workItem from="1769705479800" duration="6428000" />
       <workItem from="1770287831296" duration="455000" />
-      <workItem from="1770393920243" duration="14012000" />
+      <workItem from="1770393920243" duration="14314000" />
+      <workItem from="1770503580511" duration="1118000" />
+      <workItem from="1770553382554" duration="2399000" />
     </task>
     <task id="LOCAL-00001" summary="first commit">
       <option name="closed" value="true" />
@@ -532,7 +532,15 @@
       <option name="project" value="LOCAL" />
       <updated>1769711687118</updated>
     </task>
-    <option name="localTasksCounter" value="25" />
+    <task id="LOCAL-00025" summary="changed tap_with to accept Some">
+      <option name="closed" value="true" />
+      <created>1770422138766</created>
+      <option name="number" value="00025" />
+      <option name="presentableId" value="LOCAL-00025" />
+      <option name="project" value="LOCAL" />
+      <updated>1770422138766</updated>
+    </task>
+    <option name="localTasksCounter" value="26" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -554,6 +562,7 @@
     <MESSAGE value="new version" />
     <MESSAGE value="removing pipe_ref" />
     <MESSAGE value="FnOnce -&gt; FnMut / FnMut for Mut / owned to make partial  application better" />
-    <option name="LAST_COMMIT_MESSAGE" value="FnOnce -&gt; FnMut / FnMut for Mut / owned to make partial  application better" />
+    <MESSAGE value="changed tap_with to accept Some" />
+    <option name="LAST_COMMIT_MESSAGE" value="changed tap_with to accept Some" />
   </component>
 </project>

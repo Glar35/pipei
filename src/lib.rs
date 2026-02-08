@@ -52,8 +52,7 @@ pub trait ImplCurry<const ARITY: usize, Args, AState, RState, MARK, A0: ?Sized, 
 }
 
 /// Internal mechanism: Prepares a step with a projection.
-pub trait ImplCurryWith<const ARITY: usize, Args, AState, PState, RState, A0: ?Sized, P, R: ?Sized>
-{
+pub trait ImplCurryWith<const ARITY: usize, Args, State, A0: ?Sized, P, R: ?Sized> {
     type Curry<'a>
     where
         Self: 'a,
@@ -90,7 +89,7 @@ pub trait Pipe<const ARITY: usize, AState, RState> {
 impl<const ARITY: usize, AState, RState, T> Pipe<ARITY, AState, RState> for T {}
 
 /// Extension trait for running side effects without altering the pipeline value.
-pub trait Tap<const ARITY: usize, AState, RState> {
+pub trait Tap<const ARITY: usize, State> {
     /// Runs a side-effect and returns the original value.
     ///
     /// Supports both immutable and mutable operations on the value.
@@ -105,16 +104,16 @@ pub trait Tap<const ARITY: usize, AState, RState> {
     #[inline(always)]
     fn tap<'a, R, F, Args>(self, f: F) -> F::Curry<'a>
     where
-        F: ImplCurry<ARITY, Args, AState, RState, TapMark, Self, R>,
+        F: ImplCurry<ARITY, Args, State, Own, TapMark, Self, R>,
         Self: Sized,
     {
         f.curry(self)
     }
 }
-impl<const ARITY: usize, AState, RState, T> Tap<ARITY, AState, RState> for T {}
+impl<const ARITY: usize, State, T> Tap<ARITY, State> for T {}
 
 /// Extension trait for running side effects on a projection of the value.
-pub trait TapWith<const ARITY: usize, AState, PState, RState> {
+pub trait TapWith<const ARITY: usize, State> {
     /// Projects the value into Option, runs a side-effect if Some, and returns the original value.
     ///
     /// Useful for control flow, and for focusing on a specific field for validation or modification.
@@ -132,13 +131,13 @@ pub trait TapWith<const ARITY: usize, AState, PState, RState> {
     #[inline(always)]
     fn tap_with<'a, R, F, P, Args>(self, proj: P, f: F) -> F::Curry<'a>
     where
-        F: ImplCurryWith<ARITY, Args, AState, PState, RState, Self, P, R>,
+        F: ImplCurryWith<ARITY, Args, State, Self, P, R>,
         Self: Sized,
     {
         f.curry_with(self, proj)
     }
 }
-impl<const ARITY: usize, AState, PState, RState, T> TapWith<ARITY, AState, PState, RState> for T {}
+impl<const ARITY: usize, State, T> TapWith<ARITY, State> for T {}
 
 // ============================================================================================
 // Macro Logic
@@ -181,7 +180,7 @@ macro_rules! impl_arity {
             // --- Tap ---
             #[cfg(feature = $feat)]
             impl<F, A0, $($Args,)* R> ImplCurry<$N, $TupleType, Imm, Own, TapMark, A0, R> for F
-            where F: for<'b> FnOnce(&'b A0, $($Args),*) -> R {
+            where F: FnOnce(& A0, $($Args),*) -> R {
                 type Curry<'a> = impl FnOnce($($Args),*) -> A0 where F: 'a, A0: 'a;
                 #[inline(always)] fn curry<'a>(self, arg0: A0) -> Self::Curry<'a> {
                     move |$($Args),*| { self(&arg0, $($Args),*); arg0 }
@@ -190,7 +189,7 @@ macro_rules! impl_arity {
 
             #[cfg(feature = $feat)]
             impl<F, A0, $($Args,)* R> ImplCurry<$N, $TupleType, Mut, Own, TapMark, A0, R> for F
-            where F: for<'b> FnMut(&'b mut A0, $($Args),*) -> R {
+            where F: FnMut(&mut A0, $($Args),*) -> R {
                 type Curry<'a> = impl FnOnce($($Args),*) -> A0 where F: 'a, A0: 'a;
                 #[inline(always)] fn curry<'a>(mut self, mut arg0: A0) -> Self::Curry<'a> {
                     move |$($Args),*| { self(&mut arg0, $($Args),*); arg0 }
@@ -199,15 +198,14 @@ macro_rules! impl_arity {
 
             // --- Tap With (Projection) ---
             #[cfg(feature = $feat)]
-            impl<F, P, A0, T: ?Sized, $($Args,)* R> ImplCurryWith<$N, $TupleType, Imm, Imm, Own, A0, P, R> for F
+            impl<F, P, A0, T: ?Sized, $($Args,)* R> ImplCurryWith<$N, $TupleType, Imm, A0, P, R> for F
             where
                 P: for<'b> FnOnce(&'b A0) -> Option<&'b T>,
-                F: for<'b> FnOnce(&'b T, $($Args),*) -> R
+                F: FnOnce(&T, $($Args),*) -> R
             {
                 type Curry<'a> = impl FnOnce($($Args),*) -> A0 where F: 'a, A0: 'a, P: 'a;
                 #[inline(always)] fn curry_with<'a>(self, arg0: A0, proj: P) -> Self::Curry<'a> {
                     move |$($Args),*| {
-                        // self(proj(&arg0), $($Args),*);
                         if let Some(v) = proj(&arg0) { self(v, $($Args),*); }
                         arg0
                     }
@@ -215,15 +213,14 @@ macro_rules! impl_arity {
             }
 
             #[cfg(feature = $feat)]
-            impl<F, P, A0, T: ?Sized, $($Args,)* R> ImplCurryWith<$N, $TupleType, Mut, Mut, Own, A0, P, R> for F
+            impl<F, P, A0, T: ?Sized, $($Args,)* R> ImplCurryWith<$N, $TupleType, Mut, A0, P, R> for F
             where
                 P: for<'b> FnMut(&'b mut A0) -> Option<&'b mut T>,
-                F: for<'b> FnMut(&'b mut T, $($Args),*) -> R
+                F: FnMut(& mut T, $($Args),*) -> R
             {
                 type Curry<'a> = impl FnOnce($($Args),*) -> A0 where F: 'a, A0: 'a, P: 'a;
                 #[inline(always)] fn curry_with<'a>(mut self, mut arg0: A0, mut proj: P) -> Self::Curry<'a> {
                     move |$($Args),*| {
-                        // self(proj(&mut arg0), $($Args),*);
                         if let Some(v) = proj(&mut arg0) { self(v, $($Args),*); }
                         arg0
                     }
@@ -247,7 +244,6 @@ macro_rules! generate_pipeline {
     };
 }
 
-// Generate implementations for Arity 0..100
 generate_pipeline! {
     (0, "0"),
     (1, "1", P1), (2, "2", P2), (3, "3", P3), (4, "4", P4), (5, "5", P5),
@@ -434,6 +430,25 @@ mod tests {
         let val = 0.tap_with(|x| if *x < 5 { Some(x) } else { None }, assert_lt)(5);
         assert_eq!(val, 0)
     }
+
+    #[test]
+    fn tap_extended_simplified() {
+        fn assertion(x: &i32) {
+            assert!(*x < 5)
+        }
+
+        let val = 0.tap_with(|x| Some(x), assertion)();
+        assert_eq!(val, 0)
+    }
+    // // fail case:
+    // #[test]
+    // fn tap_extended_inline() {
+    //
+    //     let val = 0.tap_with(|x| Some(x),
+    //                          |x: &i32| assert!(*x < 5)
+    //     )();
+    //     assert_eq!(val, 0)
+    // }
 
     #[test]
     fn tap_extended_mut() {
