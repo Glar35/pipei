@@ -78,7 +78,7 @@ assert_eq!(discounted, [80.0, 160.0, 240.0]);
 
 `tap_with` takes a projection that returns an `Option`; if the result is `Some`, the side effect runs on the projected value.
 This bridges the gap when a side effect’s signature does not match the receiver: the projection adapts one to the other, whether by accessing a field, calling `.as_ref()`, `.as_bytes()`, or any other transformation.
-It subsumes the specialized methods from the [`tap`](https://crates.io/crates/tap) crate (`tap_ok`, `tap_dbg`, etc.) using a single generic projection.
+It subsumes the specialized methods from the [`tap`](https://crates.io/crates/tap) crate (`tap_ok`, `tap_dbg`, etc.) through a single generic projection.
 
 ```rust
 use pipei::TapWith;
@@ -113,7 +113,7 @@ assert_eq!(final_req.attempts, 4);
 ```
 
 
-## Comparison with the _tap_ crate
+## Comparison With _tap_
 
 _pipei_ generalizes _tap_ to support multi-argument functions, reducing syntactic noise and simplifying control flow in pipelines involving `Result` or `Option`.
 
