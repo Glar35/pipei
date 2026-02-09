@@ -3,7 +3,7 @@
 _pipei_ allows writing `x.pipe(f)(y, z)` in place of `f(x, y, z)`, enabling method-style chaining and partial application for multi-argument functions.
 It also provides `tap` and `tap_with` for multi-argument side effects that return the original value.
 
-This project is inspired by the [UMCS (Universal Method Call Syntax) proposal](https://internals.rust-lang.org/t/weird-syntax-idea-s-for-umcs/19200/35). It requires nightly Rust for `#![feature(impl_trait_in_assoc_type)]`.
+This project is inspired by the [UMCS (Unified Method Call Syntax) proposal](https://internals.rust-lang.org/t/weird-syntax-idea-s-for-umcs/19200/35). It requires nightly Rust for `#![feature(impl_trait_in_assoc_type)]`.
 
 ### Basic Chaining
 
@@ -57,7 +57,7 @@ let discounted = prices.map(apply_discount);
 assert_eq!(discounted, [80.0, 160.0, 240.0]);
 ```
 
-### Projected Side Effects
+### Projection
 
 `tap_with` lets you compose an existing function with a projection on the receiver when the function's signature doesn't match the receiver directly. 
 The projection returns an `Option` to allow for _conditional execution_; returning `None` skips the side effect. 
@@ -72,7 +72,7 @@ fn log_trace<T: core::fmt::Debug>(val: &T, label: &str) { /* ... */ }
 
 let mut req = Request { url: "https://pipei.rs".into(), attempts: 3 };
 
-// Project `req` to its `attempts` field, compose with `track_retry`
+// Compose `track_retry` with the projection to the `attempts` field
 (&mut req).tap_with(|r| Some(&mut r.attempts), track_retry)();
 assert_eq!(req.attempts, 4);
 
