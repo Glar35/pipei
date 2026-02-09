@@ -17,7 +17,7 @@ pipei = "*" # default: features = ["up_to_5"]
 # pipei = { version = "*", features = ["0", "1", "3", "4"] }
 ```
 
-## Basic chaining
+## Basic Chaining
 
 `pipe` passes the value to the function and returns the result. 
 `tap` passes the value for a side effect—logging, assertions, or mutation—and returns the original value.
@@ -145,7 +145,6 @@ load("background.png")?
 ```
 
 **Using _pipei_:**
-The flow remains flat and `?` works naturally.
 ```rust
 load("background.png")?
     .pipe(composite_onto)(
