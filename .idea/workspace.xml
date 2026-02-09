@@ -53,10 +53,7 @@
     </cargoProject>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9a160d57-da59-441c-aa3b-69ef0db1b8be" name="Changes" comment="improving the documentation">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-    </list>
+    <list default="true" id="9a160d57-da59-441c-aa3b-69ef0db1b8be" name="Changes" comment="improving the documentation" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -106,63 +103,63 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Cargo.Doctest of pipei (line 18).executor": "Run",
-    "Cargo.Doctest of tap_with (line 133).executor": "Run",
-    "Cargo.Doctest of tap_with (line 169).executor": "Run",
-    "Cargo.Run.executor": "Run",
-    "Cargo.Test extended_tap_tests.executor": "Run",
-    "Cargo.Test extended_tap_tests::test_simulate_conditional_mutation.executor": "Run",
-    "Cargo.Test extended_tap_tests::test_simulate_tap_dbg.executor": "Run",
-    "Cargo.Test extended_tap_tests::test_simulate_tap_err.executor": "Run",
-    "Cargo.Test fn_bound_tests.executor": "Run",
-    "Cargo.Test lib::tests.executor": "Run",
-    "Cargo.Test mutation_tests.executor": "Run",
-    "Cargo.Test mutation_tests::tap_with_conditional_mutation.executor": "Run",
-    "Cargo.Test no_std_tests (1).executor": "Run",
-    "Cargo.Test no_std_tests.executor": "Run",
-    "Cargo.Test no_std_tests::test_tap_with_no_std_workflow.executor": "Run",
-    "Cargo.Test reference_tap_tests.executor": "Run",
-    "Cargo.Test reference_tap_tests::test_ref_tap_any_dbg.executor": "Run",
-    "Cargo.Test reference_tap_tests::test_ref_tap_err.executor": "Run",
-    "Cargo.Test tap_with_tests.executor": "Run",
-    "Cargo.Test test_pipe0_flexibility.executor": "Run",
-    "Cargo.Test tests::check_reusability.executor": "Run",
-    "Cargo.Test tests::no_std_tests::test_tap_with_no_std_workflow.executor": "Run",
-    "Cargo.Test tests::server_check.executor": "Run",
-    "Cargo.Test tests::tap_extended.executor": "Run",
-    "Cargo.Test tests::tap_extended_clausure.executor": "Run",
-    "Cargo.Test tests::tap_extended_fixed.executor": "Run",
-    "Cargo.Test tests::tap_extended_inline.executor": "Run",
-    "Cargo.Test tests::tap_extended_mut.executor": "Run",
-    "Cargo.Test tests::tap_extended_simplified.executor": "Run",
-    "Cargo.Test tests::tap_with_doc.executor": "Run",
-    "Cargo.Test tests::test_pipe_mutable_borrow.executor": "Run",
-    "Cargo.Test verify_readme_examples.executor": "Run",
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "RunOnceActivity.MCP Project settings loaded": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "RunOnceActivity.rust.reset.selective.auto.import": "true",
-    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
-    "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
-    "git-widget-placeholder": "master",
-    "junie.onboarding.icon.badge.shown": "true",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "org.rust.cargo.project.model.PROJECT_DISCOVERY": "true",
-    "org.rust.cargo.project.model.impl.CargoExternalSystemProjectAware.subscribe.first.balloon": "",
-    "org.rust.first.attach.projects": "true",
-    "settings.editor.selected.configurable": "language.rust.cargo.check",
-    "to.speed.mode.migration.done": "true",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Cargo.Doctest of pipei (line 18).executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Doctest of tap_with (line 133).executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Doctest of tap_with (line 169).executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Run.executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test extended_tap_tests.executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test extended_tap_tests::test_simulate_conditional_mutation.executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test extended_tap_tests::test_simulate_tap_dbg.executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test extended_tap_tests::test_simulate_tap_err.executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test fn_bound_tests.executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test lib::tests.executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test mutation_tests.executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test mutation_tests::tap_with_conditional_mutation.executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test no_std_tests (1).executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test no_std_tests.executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test no_std_tests::test_tap_with_no_std_workflow.executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test reference_tap_tests.executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test reference_tap_tests::test_ref_tap_any_dbg.executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test reference_tap_tests::test_ref_tap_err.executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test tap_with_tests.executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test test_pipe0_flexibility.executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test tests::check_reusability.executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test tests::no_std_tests::test_tap_with_no_std_workflow.executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test tests::server_check.executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test tests::tap_extended.executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test tests::tap_extended_clausure.executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test tests::tap_extended_fixed.executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test tests::tap_extended_inline.executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test tests::tap_extended_mut.executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test tests::tap_extended_simplified.executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test tests::tap_with_doc.executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test tests::test_pipe_mutable_borrow.executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test verify_readme_examples.executor&quot;: &quot;Run&quot;,
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.MCP Project settings loaded&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.rust.reset.selective.auto.import&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
+    &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;org.rust.cargo.project.model.PROJECT_DISCOVERY&quot;: &quot;true&quot;,
+    &quot;org.rust.cargo.project.model.impl.CargoExternalSystemProjectAware.subscribe.first.balloon&quot;: &quot;&quot;,
+    &quot;org.rust.first.attach.projects&quot;: &quot;true&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;language.rust.cargo.check&quot;,
+    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$" />
@@ -345,7 +342,7 @@
       <workItem from="1770555932314" duration="51000" />
       <workItem from="1770556039568" duration="5541000" />
       <workItem from="1770571213683" duration="570000" />
-      <workItem from="1770574888498" duration="25220000" />
+      <workItem from="1770574888498" duration="25260000" />
     </task>
     <task id="LOCAL-00001" summary="first commit">
       <option name="closed" value="true" />
@@ -619,7 +616,15 @@
       <option name="project" value="LOCAL" />
       <updated>1770643419208</updated>
     </task>
-    <option name="localTasksCounter" value="35" />
+    <task id="LOCAL-00035" summary="improving the documentation">
+      <option name="closed" value="true" />
+      <created>1770643914332</created>
+      <option name="number" value="00035" />
+      <option name="presentableId" value="LOCAL-00035" />
+      <option name="project" value="LOCAL" />
+      <updated>1770643914332</updated>
+    </task>
+    <option name="localTasksCounter" value="36" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

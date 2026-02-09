@@ -5,7 +5,7 @@ It also provides `tap` and `tap_with` for multi-argument side effects that retur
 
 This project is inspired by the [UMCS (Universal Method Call Syntax) proposal](https://internals.rust-lang.org/t/weird-syntax-idea-s-for-umcs/19200/35). It requires nightly Rust for `#![feature(impl_trait_in_assoc_type)]`.
 
-## Basic Chaining
+### Basic Chaining
 
 `pipe` passes the value as the first argument to a function and returns the result.
 `tap` passes the value to a function for a side effect, then returns the original value.
@@ -32,7 +32,7 @@ let val = 2
 assert_eq!(val, 5);
 ```
 
-## Partial Application
+### Partial Application
 
 Because `pipe` returns a closure over the remaining arguments, it doubles as partial application.
 ```rust
@@ -57,7 +57,7 @@ let discounted = prices.map(apply_discount);
 assert_eq!(discounted, [80.0, 160.0, 240.0]);
 ```
 
-## Projected Side Effects
+### Projected Side Effects
 
 `tap_with` lets you reuse a side-effect function whose signature doesn't match the receiver. A projection extracts the relevant part; if it returns `Some`, the side effect runs on the projected value. If `None`, it is skipped. In both cases, the original value is returned.
 ```rust
@@ -86,7 +86,7 @@ let req = req.tap_with(|r| {
 assert_eq!(req.attempts, 4);
 ```
 
-## Error Handling in Pipelines
+### Error Handling
 
 The [`tap`](https://crates.io/crates/tap) crate provides single-argument `pipe` and `tap` traits.
 _pipei_ generalizes both to multi-argument functions, which particularly simplifies fallible pipelines where `?` interacts poorly with closures.
@@ -127,7 +127,7 @@ load("background.png")?
     .pipe(save)("result.png");
 ```
 
-## Feature Flags
+### Feature Flags
 
 To optimize compile time, enable only the arities you need (from 0 up to 50).
 Use `up_to_N` features (available in multiples of five) or enable individual arity features.
