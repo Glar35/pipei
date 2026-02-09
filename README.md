@@ -59,9 +59,12 @@ assert_eq!(discounted, [80.0, 160.0, 240.0]);
 
 ### Projected Side Effects
 
-`tap_with` lets you reuse a side-effect function whose signature doesn't match the receiver. A projection extracts the relevant part; if it returns `Some`, the side effect runs on the projected value. If `None`, it is skipped. In both cases, the original value is returned.
+`tap_with` lets you compose an existing function with a projection on the receiver when the function's signature doesn't match the receiver directly. 
+The projection returns an `Option` to allow for _conditional execution_; returning `None` skips the side effect. 
+Like `tap`, the original value is always returned.
+
 ```rust
-# use pipei::TapWith;
+use pipei::TapWith;
 struct Request { url: String, attempts: u32 }
 
 fn track_retry(count: &mut u32) { *count += 1 }
@@ -69,7 +72,7 @@ fn log_trace<T: core::fmt::Debug>(val: &T, label: &str) { /* ... */ }
 
 let mut req = Request { url: "https://pipei.rs".into(), attempts: 3 };
 
-// track_retry expects &mut u32, not &mut Request — the projection bridges the gap
+// Project `req` to its `attempts` field, compose with `track_retry`
 (&mut req).tap_with(|r| Some(&mut r.attempts), track_retry)();
 assert_eq!(req.attempts, 4);
 
@@ -88,11 +91,11 @@ assert_eq!(req.attempts, 4);
 
 ### Error Handling
 
-The [`tap`](https://crates.io/crates/tap) crate provides single-argument `pipe` and `tap` traits.
-_pipei_ generalizes both to multi-argument functions, which particularly simplifies fallible pipelines where `?` interacts poorly with closures.
+The [_tap_](https://crates.io/crates/tap) crate provides single-argument `pipe` and `tap` traits.
+_pipei_ generalizes these to multi-argument functions, so arguments are passed directly rather than nested in closures.
+This has the advantage of simplifying fallible pipelines, particularly when using control flow operations.
 
-**Standard Rust:**
-The reading order is inverted ("inside-out"): `save` is written first, but executes last.
+In the following example, the reading order is inverted ("inside-out"): `save` is written first, but executes last.
 ```rust
 save(
     composite_onto(
@@ -104,7 +107,7 @@ save(
 );
 ```
 
-**Using _tap_:**
+**With the _tap_ crate:**
 Since `?` applies inside the closure, the closure returns a `Result`, forcing manual `Ok` wrapping and an extra `?`.
 ```rust
 load("background.png")?
@@ -117,7 +120,7 @@ load("background.png")?
     .pipe(|img| save(img, "result.png"));
 ```
 
-**Using _pipei_:**
+**With _pipei_:**
 ```rust
 load("background.png")?
     .pipe(composite_onto)(
@@ -134,7 +137,7 @@ Use `up_to_N` features (available in multiples of five) or enable individual ari
 
 ```toml
 [dependencies]
-pipei = "*" # default: features = ["up_to_5"]
+pipei = "*" # default: features = ["up_to_15"]
 # pipei = { version = "*", features = ["up_to_20", "31"] }  
 # pipei = { version = "*", features = ["0", "1", "3", "4"] }
 ```
