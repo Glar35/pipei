@@ -48,7 +48,7 @@ impl Discount {
 
 let season_pass = Discount { rate: 0.20 };
 
-// Equivalent to (the hypothetical): let apply_discount = season_pass.apply;
+// Equivalent to the hypothetical: `let apply_discount = season_pass.apply;`
 let apply_discount = season_pass.pipe(Discount::apply);
 
 let prices = [100.0, 200.0, 300.0];
@@ -72,7 +72,6 @@ fn log_trace<T: core::fmt::Debug>(val: &T, label: &str) { /* ... */ }
 
 let mut req = Request { url: "https://pipei.rs".into(), attempts: 3 };
 
-// Compose `track_retry` with the projection to the `attempts` field
 (&mut req).tap_with(|r| Some(&mut r.attempts), track_retry)();
 assert_eq!(req.attempts, 4);
 
