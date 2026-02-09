@@ -1,57 +1,40 @@
 # pipe{i}
 
-_pipei_ allows writing `x.pipe(f)(y, z)` in place of `f(x, y, z)`, enabling method-style chaining and reusable partial application by returning a closure over the remaining arguments.
-The library similarly provides a multi-argument `tap` operator for side effects that returns the original value.
+_pipei_ allows writing `x.pipe(f)(y, z)` in place of `f(x, y, z)`, enabling method-style chaining and partial application for multi-argument functions.
+It also provides `tap` and `tap_with` for multi-argument side effects that return the original value.
 
-This project is inspired by the [UMCS proposal](https://internals.rust-lang.org/t/weird-syntax-idea-s-for-umcs/19200/35). It requires nightly Rust for `#![feature(impl_trait_in_assoc_type)]`.
-
-## Installation
-
-To optimize compile time, enable only the arities you need (from 0 up to 50).
-Use `up_to_N` features (available in multiples of five) or enable individual arity features.
-
-```toml
-[dependencies]
-pipei = "*" # default: features = ["up_to_5"]
-# pipei = { version = "*", features = ["up_to_20", "31"] }  
-# pipei = { version = "*", features = ["0", "1", "3", "4"] }
-```
+This project is inspired by the [UMCS (Universal Method Call Syntax) proposal](https://internals.rust-lang.org/t/weird-syntax-idea-s-for-umcs/19200/35). It requires nightly Rust for `#![feature(impl_trait_in_assoc_type)]`.
 
 ## Basic Chaining
 
-`pipe` passes the value to the function and returns the result. 
-`tap` passes the value for a side effect—logging, assertions, or mutation—and returns the original value.
-
+`pipe` passes the value as the first argument to a function and returns the result.
+`tap` passes the value to a function for a side effect, then returns the original value.
 
 ```rust
 use pipei::{Pipe, Tap};
 
 fn add(x: i32, y: i32) -> i32 { x + y }
-fn mul(x: i32, y: i32) -> i32 { x * y }
-fn lin(x: i32, a: i32, b: i32) -> i32 { a * x + b }
 
-let maybe_num = 2
-    .pipe(add)(3)      
-    .pipe(mul)(10)    
-    .pipe(lin)(7, 1)
+let result = 2
+    .pipe(add)(3)
+    .pipe(|x, a, b| a * x + b)(10, 1)
     .pipe(Option::Some)();
 
-assert_eq!(maybe_num, Some(351));
+assert_eq!(result, Some(51));
 
-fn log_val(x: &i32) { println!("val: {}", x); }
+fn log(x: &i32) { println!("val: {}", x); }
 fn add_assign(x: &mut i32, y: i32) { *x += y; }
 
 let val = 2
-    .tap(log_val)()         // Immutable: passes &i32
-    .tap(add_assign)(3);    // Mutable: passes &mut i32
+    .tap(log)()             // Immutable: inferred &i32
+    .tap(add_assign)(3);    // Mutable: inferred &mut i32
 
 assert_eq!(val, 5);
 ```
 
 ## Partial Application
 
-`pipe` curries the first argument of a function, producing a standalone reusable function that accepts the remaining arguments.
-
+Because `pipe` returns a closure over the remaining arguments, it doubles as partial application.
 ```rust
 use pipei::Pipe;
 
@@ -74,48 +57,39 @@ let discounted = prices.map(apply_discount);
 assert_eq!(discounted, [80.0, 160.0, 240.0]);
 ```
 
-## `TapWith`
+## Projected Side Effects
 
-`tap_with` takes a projection that returns an `Option`; if the result is `Some`, the side effect runs on the projected value.
-This bridges the gap when a side effect’s signature does not match the receiver: the projection adapts one to the other, whether by accessing a field, calling `.as_ref()`, `.as_bytes()`, or any other transformation.
-It subsumes the specialized methods from the [`tap`](https://crates.io/crates/tap) crate (`tap_ok`, `tap_dbg`, etc.) through a single generic projection.
-
+`tap_with` lets you reuse a side-effect function whose signature doesn't match the receiver. A projection extracts the relevant part; if it returns `Some`, the side effect runs on the projected value. If `None`, it is skipped. In both cases, the original value is returned.
 ```rust
-use pipei::TapWith;
-
-#[derive(Debug)]
+# use pipei::TapWith;
 struct Request { url: String, attempts: u32 }
 
 fn track_retry(count: &mut u32) { *count += 1 }
-fn log_status(code: &u32, count: u32) { /* ... */ }
-fn log_trace(req: &Request, label: &str) { /* ... */ }
+fn log_trace<T: core::fmt::Debug>(val: &T, label: &str) { /* ... */ }
 
-let mut req = Request { url: "https://api.rs".into(), attempts: 3 };
+let mut req = Request { url: "https://pipei.rs".into(), attempts: 3 };
 
-// Simulating tap's `tap_mut` on a field
+// track_retry expects &mut u32, not &mut Request — the projection bridges the gap
 (&mut req).tap_with(|r| Some(&mut r.attempts), track_retry)();
+assert_eq!(req.attempts, 4);
 
-// Simulating tap's `tap_err` (only tap on error)
-let res = Err::<Request, _>(503)
-    .tap_with(|x| x.as_ref().err(), log_status)(req.attempts);
-
+// tap only on Err
+let res = Err::<(), _>(503)
+    .tap_with(|x| x.as_ref().err(), log_trace)("request failed");
 assert_eq!(res.unwrap_err(), 503);
 
-
-// Simulating tap's `tap_dbg` (only tap in debug mode)
-let final_req = req.tap_with(|r| {
+// tap only in debug builds
+let req = req.tap_with(|r| {
     #[cfg(debug_assertions)] { Some(r) }
     #[cfg(not(debug_assertions))] { None }
-    }, log_trace)("FINAL_STATE");
-
-
-assert_eq!(final_req.attempts, 4);
+    }, log_trace)("FINAL");
+assert_eq!(req.attempts, 4);
 ```
 
+## Error Handling in Pipelines
 
-## Comparison With _tap_
-
-_pipei_ generalizes _tap_ to support multi-argument functions, reducing syntactic noise and simplifying control flow in pipelines involving `Result` or `Option`.
+The [`tap`](https://crates.io/crates/tap) crate provides single-argument `pipe` and `tap` traits.
+_pipei_ generalizes both to multi-argument functions, which particularly simplifies fallible pipelines where `?` interacts poorly with closures.
 
 **Standard Rust:**
 The reading order is inverted ("inside-out"): `save` is written first, but executes last.
@@ -130,9 +104,8 @@ save(
 );
 ```
 
-**Using _tap_:**
-Since `?` applies to the closure, the closure itself returns a `Result`. 
-This forces manual `Ok` wrapping and an extra `?` after the `pipe` call.
+**Using _tap_**
+Since `?` applies inside the closure, the closure returns a `Result`, forcing manual `Ok` wrapping and an extra `?`.
 ```rust
 load("background.png")?
     .pipe(|bg| {
@@ -152,4 +125,16 @@ load("background.png")?
         0.8,
     )
     .pipe(save)("result.png");
+```
+
+## Feature Flags
+
+To optimize compile time, enable only the arities you need (from 0 up to 50).
+Use `up_to_N` features (available in multiples of five) or enable individual arity features.
+
+```toml
+[dependencies]
+pipei = "*" # default: features = ["up_to_5"]
+# pipei = { version = "*", features = ["up_to_20", "31"] }  
+# pipei = { version = "*", features = ["0", "1", "3", "4"] }
 ```

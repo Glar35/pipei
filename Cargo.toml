@@ -1,10 +1,10 @@
 [package]
 name = "pipei"
-version = "0.3.0"
+version = "0.3.1"
 edition = "2021"
-description = "Generalized `pipe` and `tap` traits for multi-argument chaining and partial application."
-keywords = ["pipe", "tap", "chaining", "curry", "functional"]
-categories = ["rust-patterns", "no-std", "development-tools::debugging"]
+description = "Multi-argument pipe and tap with partial application."
+keywords = ["pipe", "tap", "chaining", "partial-application", "functional"]
+categories = ["rust-patterns", "no-std", "no-std::no-alloc", "development-tools::debugging"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/Glar35/pipei"
 documentation = "https://docs.rs/pipei"

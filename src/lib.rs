@@ -16,12 +16,16 @@
 //! * **[`TapWith::tap_with`]:** Like `tap`, but first applies a projection; the side effect only runs if the projection returns `Some`.
 //!
 //! ```rust
-//! # use pipei::Pipe;
+//! # use pipei::{Pipe, Tap};
 //! fn add(a: i32, b: i32) -> i32 { a + b }
+//! fn log(x: &i32) { println!("{x}"); }
 //!
-//! let result = 10.pipe(add)(5);
+//! let result = 1
+//!     .pipe(add)(2)
+//!     .tap(log)()
+//!     .pipe(Option::Some)();
 //!
-//! assert_eq!(result, 15);
+//! assert_eq!(result, Some(3));
 //! ```
 
 // ============================================================================================
@@ -69,16 +73,22 @@ pub trait CurryWith<const ARITY: usize, Args, State, A0: ?Sized, P, R: ?Sized> {
 
 /// Extension trait for transforming values.
 pub trait Pipe<const ARITY: usize, AState, RState> {
-    /// Curries `self` as the first argument of `f`, returning a closure over the remaining arguments.
-    /// Because the returned closure is a standalone value, `pipe` doubles as partial application.
+    /// Curries `self` as the first argument of `f`, returning a closure over
+    /// the remaining arguments. The returned closure is a standalone value,
+    /// so `pipe` doubles as partial application.
     ///
-    /// # Example
+    /// # Examples
+    ///
     /// ```rust
     /// # use pipei::Pipe;
-    /// fn add(a: i32, b: i32) -> i32 { a + b }
+    /// fn add(x: i32, y: i32) -> i32 { x + y }
     ///
-    /// assert_eq!(10i32.pipe(add)(5), 15);
-    /// assert_eq!(10i32.pipe(Option::Some)(), Some(10));
+    /// let result = 2
+    ///     .pipe(add)(3)
+    ///     .pipe(|x, a, b| a * x + b)(10, 1)
+    ///     .pipe(Option::Some)();
+    ///
+    /// assert_eq!(result, Some(51));
     ///
     /// struct Threshold(i32);
     /// impl Threshold {
@@ -87,6 +97,12 @@ pub trait Pipe<const ARITY: usize, AState, RState> {
     ///
     /// let is_high = Threshold(50).pipe(Threshold::check);
     /// assert_eq!([20, 60, 80].map(is_high), [false, true, true]);
+    ///
+    /// fn first_mut(slice: &mut [i32; 3]) -> &mut i32 { &mut slice[0] }
+    ///
+    /// let mut data = [10, 20, 30];
+    /// *(&mut data).pipe(first_mut)() = 99;
+    /// assert_eq!(data[0], 99);
     /// ```
     #[inline(always)]
     fn pipe<'a, R, F, Args>(self, f: F) -> F::Curry<'a>
@@ -101,17 +117,32 @@ impl<const ARITY: usize, AState, RState, T> Pipe<ARITY, AState, RState> for T {}
 
 /// Extension trait for running side effects, returning the original value.
 pub trait Tap<const ARITY: usize, State> {
-    /// Passes `self` into `f` for inspection or mutation, then returns the original value.
-    /// The closure receives `self` by shared or exclusive reference depending on its signature.
+    /// Passes `self` into `f` for inspection or mutation, then returns the
+    /// original (possibly modified) value. The function receives `self` by
+    /// shared or exclusive reference depending on its signature.
     ///
-    /// # Example
+    /// # Examples
+    ///
     /// ```rust
     /// # use pipei::Tap;
-    /// fn log(x: &i32) { /* inspect via &T */ }
+    /// fn log(x: &i32) { println!("val: {x}"); }
+    /// fn assert_between(x: &i32, lo: i32, hi: i32) { assert!(*x >= lo && *x <= hi); }
+    /// fn add_assign(x: &mut i32, y: i32) { *x += y; }
     ///
-    /// let val = 10.tap(log)()                     // immutable: passes &i32
-    ///             .tap(|x: &mut i32| *x += 5)();  // mutable: passes &mut i32
-    /// assert_eq!(val, 15);
+    /// let result = 15
+    ///     .tap(log)()
+    ///     .tap(assert_between)(0, 100)
+    ///     .tap(add_assign)(3);
+    ///
+    /// assert_eq!(result, 18);
+    ///
+    /// struct State { count: i32 }
+    ///
+    /// let s = State { count: 0 }
+    ///     .tap(|s: &mut State| s.count += 1)()
+    ///     .tap(|s: &mut State| s.count *= 10)();
+    ///
+    /// assert_eq!(s.count, 10);
     /// ```
     #[inline(always)]
     fn tap<'a, R, F, Args>(self, f: F) -> F::Curry<'a>
@@ -126,26 +157,49 @@ impl<const ARITY: usize, State, T> Tap<ARITY, State> for T {}
 
 /// Extension trait for running side effects on a projection of the value.
 pub trait TapWith<const ARITY: usize, State> {
-    /// Runs a side effect on a projection of `self`. The projection returns an
-    /// `Option`; if `Some`, the side effect runs on the inner value. If `None`,
-    /// nothing happens. In both cases, the original value is returned.
+    /// Runs a side effect on a projection of `self`. The projection returns
+    /// an `Option`; if `Some`, the side effect runs on the projected value.
+    /// If `None`, the side effect is skipped. In both cases, `self` is returned.
     ///
-    /// This subsumes specialized tapping patterns like `tap_ok`, `tap_err`,
-    /// and `tap_dbg` from the `tap` crate — each is a particular choice of
-    /// projection.
+    /// The projection can adapt the value in any way — accessing a field,
+    /// calling `.as_ref()`, `.as_bytes()`, or any other transformation —
+    /// bridging the gap when the side effect's signature doesn't match the
+    /// receiver directly. This subsumes the specialized methods from the
+    /// [`tap`](https://crates.io/crates/tap) crate (`tap_some`, `tap_ok`,
+    /// `tap_err`, `tap_dbg`, …) through a single generic projection.
     ///
-    /// # Example
+    /// # Examples
+    ///
     /// ```rust
     /// # use pipei::TapWith;
-    /// struct Response { status: u32, body: String }
+    /// #[derive(Debug)]
+    /// struct Request { url: String, attempts: u32 }
     ///
-    /// fn log_status(code: &u32) { println!("status: {code}"); }
+    /// fn assert_ascii(bytes: &[u8]) { assert!(bytes.is_ascii()); }
+    /// fn track_retry(count: &mut u32) { *count += 1 }
+    /// fn log_status(code: &u32, url: &str, count: u32) { eprintln!("{url}: error {code} (attempt {count})"); }
+    /// fn log_trace<T: core::fmt::Debug>(val: &T, label: &str) { eprintln!("{label}: {val:?}"); }
     ///
-    /// // Tap only a specific field, leaving the full value intact:
-    /// let resp = Response { status: 200, body: "OK".into() };
-    /// let resp = resp.tap_with(|r: &Response| Some(&r.status), log_status)();
+    /// let mut req = Request { url: "https://pipei.rs".into(), attempts: 3 };
     ///
-    /// assert_eq!(resp.body, "OK");
+    /// // project to bytes
+    /// (&req).tap_with(|r| Some(r.url.as_bytes()), assert_ascii)();
+    ///
+    /// // project to a mutable field
+    /// (&mut req).tap_with(|r| Some(&mut r.attempts), track_retry)();
+    /// assert_eq!(req.attempts, 4);
+    ///
+    /// // tap only on Err
+    /// let res = Err::<Request, _>(503)
+    ///     .tap_with(|x| x.as_ref().err(), log_status)(&req.url, req.attempts);
+    /// assert_eq!(res.unwrap_err(), 503);
+    ///
+    /// // tap only in debug builds
+    /// let req = req.tap_with(|r| {
+    ///     #[cfg(debug_assertions)] { Some(r) }
+    ///     #[cfg(not(debug_assertions))] { None }
+    /// }, log_trace)("FINAL");
+    /// assert_eq!(req.attempts, 4);
     /// ```
     #[inline(always)]
     fn tap_with<'a, R, F, P, Args>(self, proj: P, f: F) -> F::Curry<'a>
@@ -208,9 +262,9 @@ macro_rules! impl_arity {
 
             #[cfg(feature = $feat)]
             impl<F, A0, $($Args,)* R> Curry<$N, $TupleType, Mut, Own, TapMark, A0, R> for F
-            where F: FnMut(&mut A0, $($Args),*) -> R {
+            where F: FnOnce(&mut A0, $($Args),*) -> R {
                 type Curry<'a> = impl FnOnce($($Args),*) -> A0 where F: 'a, A0: 'a;
-                #[inline(always)] fn curry<'a>(mut self, mut arg0: A0) -> Self::Curry<'a> {
+                #[inline(always)] fn curry<'a>(self, mut arg0: A0) -> Self::Curry<'a> {
                     move |$($Args),*| { self(&mut arg0, $($Args),*); arg0 }
                 }
             }
@@ -234,11 +288,11 @@ macro_rules! impl_arity {
             #[cfg(feature = $feat)]
             impl<F, P, A0, T: ?Sized, $($Args,)* R> CurryWith<$N, $TupleType, Mut, A0, P, R> for F
             where
-                P: for<'b> FnMut(&'b mut A0) -> Option<&'b mut T>,
-                F: FnMut(& mut T, $($Args),*) -> R
+                P: for<'b> FnOnce(&'b mut A0) -> Option<&'b mut T>,
+                F: FnOnce(& mut T, $($Args),*) -> R
             {
                 type Curry<'a> = impl FnOnce($($Args),*) -> A0 where F: 'a, A0: 'a, P: 'a;
-                #[inline(always)] fn curry_with<'a>(mut self, mut arg0: A0, mut proj: P) -> Self::Curry<'a> {
+                #[inline(always)] fn curry_with<'a>(self, mut arg0: A0, proj: P) -> Self::Curry<'a> {
                     move |$($Args),*| {
                         if let Some(v) = proj(&mut arg0) { self(v, $($Args),*); }
                         arg0
@@ -725,5 +779,198 @@ mod mutation_tests {
         let res = counter.tap_with(|c: &mut Counter| Some(&mut c.count), add_ten)();
 
         assert_eq!(res.count, 10);
+    }
+}
+#[cfg(test)]
+mod fn_bound_tests {
+    use super::*;
+
+    struct Token<'a> {
+        dropped: &'a mut bool,
+        n: i32,
+    }
+    impl<'a> Drop for Token<'a> {
+        fn drop(&mut self) {
+            *self.dropped = true;
+        }
+    }
+
+    #[derive(Clone, Copy)]
+    struct Buf<const N: usize> {
+        data: [i32; N],
+        len: usize,
+    }
+    impl<const N: usize> Buf<N> {
+        fn new() -> Self {
+            Self {
+                data: [0; N],
+                len: 0,
+            }
+        }
+        fn push(&mut self, x: i32) {
+            self.data[self.len] = x;
+            self.len += 1;
+        }
+    }
+
+    #[test]
+    fn pipe_imm_closure_is_reusable() {
+        fn add(x: &i32, y: i32) -> i32 {
+            *x + y
+        }
+        let add_ten = 10.pipe(add);
+        assert_eq!(add_ten(1), 11);
+        assert_eq!(add_ten(2), 12);
+        assert_eq!(add_ten(3), 13);
+    }
+
+    #[test]
+    fn pipe_imm_closure_works_in_map() {
+        fn mul(x: &i32, y: i32) -> i32 {
+            *x * y
+        }
+        let double = 2.pipe(mul);
+        assert_eq!([1, 2, 3].map(double), [2, 4, 6]);
+    }
+
+    #[test]
+    fn pipe_mut_closure_is_fnmut() {
+        fn increment_and_get(x: &mut i32) -> i32 {
+            *x += 1;
+            *x
+        }
+        let mut counter = 0.pipe(increment_and_get);
+        assert_eq!(counter(), 1);
+        assert_eq!(counter(), 2);
+        assert_eq!(counter(), 3);
+    }
+
+    #[test]
+    fn pipe_mut_mutates_captured_copy_not_original() {
+        fn push(v: &mut Buf<4>, x: i32) {
+            v.push(x);
+        }
+        let mut original = Buf::<4>::new();
+        original.push(1);
+        let mut appender = original.pipe(push);
+        appender(2);
+        appender(3);
+    }
+
+    #[test]
+    fn pipe_own_consumes_value() {
+        fn sum(v: [i32; 3]) -> i32 {
+            v[0] + v[1] + v[2]
+        }
+        let result = [1, 2, 3].pipe(sum)();
+        assert_eq!(result, 6);
+    }
+
+    #[test]
+    fn tap_imm_accepts_fnonce_closure() {
+        let mut dropped = false;
+        let tok = Token {
+            dropped: &mut dropped,
+            n: 0,
+        };
+        let result = 42.tap(|_x: &i32| {
+            drop(tok);
+        })();
+        assert_eq!(result, 42);
+        assert!(dropped);
+    }
+
+    #[test]
+    fn tap_mut_accepts_fnonce_closure() {
+        let mut dropped = false;
+        let tok = Token {
+            dropped: &mut dropped,
+            n: 5,
+        };
+        let result = 10.tap(move |x: &mut i32| {
+            *x += tok.n;
+            drop(tok);
+        })();
+        assert_eq!(result, 15);
+        assert!(dropped);
+    }
+
+    #[test]
+    fn tap_mut_still_works_with_fn() {
+        fn double(x: &mut i32) {
+            *x *= 2;
+        }
+        let result = 5.tap(double)();
+        assert_eq!(result, 10);
+    }
+
+    #[test]
+    fn tap_with_none_does_not_run_side_effect() {
+        let mut ran = false;
+        let none: Option<i32> = None;
+        let result = none.tap_with(|x: &Option<i32>| x.as_ref(), {
+            let f = |_v: &i32| ran = true;
+            f
+        })();
+        assert_eq!(result, None);
+        assert!(!ran);
+    }
+
+    #[test]
+    fn tap_with_some_does_run_side_effect() {
+        let mut ran = false;
+        let some = Some(7);
+        let result = some.tap_with(|x: &Option<i32>| x.as_ref(), {
+            let f = |_v: &i32| ran = true;
+            f
+        })();
+        assert_eq!(result, Some(7));
+        assert!(ran);
+    }
+
+    #[test]
+    fn tap_with_mut_none_skips_mutation() {
+        let mut ran = false;
+        let val = 3;
+        let result = val.tap_with(|x: &mut i32| if *x > 100 { Some(x) } else { None }, {
+            let f = |_v: &mut i32| ran = true;
+            f
+        })();
+        assert_eq!(result, 3);
+        assert!(!ran);
+    }
+
+    #[test]
+    fn tap_with_mut_accepts_fnonce_projection_and_effect() {
+        let mut dropped = false;
+        let tok = Token {
+            dropped: &mut dropped,
+            n: 0,
+        };
+        let result = Some(10).tap_with(
+            move |x: &mut Option<i32>| {
+                let _ = tok.n;
+                drop(tok);
+                x.as_mut()
+            },
+            {
+                let f = |v: &mut i32| *v += 1;
+                f
+            },
+        )();
+        assert_eq!(result, Some(11));
+        assert!(dropped);
+    }
+
+    #[test]
+    fn tap_with_mut_extra_args() {
+        fn add_n(v: &mut i32, n: i32) {
+            *v += n;
+        }
+        let result = 10.tap_with(|x: &mut i32| if *x >= 0 { Some(x) } else { None }, {
+            let f = add_n;
+            f
+        })(5);
+        assert_eq!(result, 15);
     }
 }
