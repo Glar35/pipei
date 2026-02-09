@@ -55,7 +55,6 @@
   <component name="ChangeListManager">
     <list default="true" id="9a160d57-da59-441c-aa3b-69ef0db1b8be" name="Changes" comment="improving the readme">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Cargo.lock" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.lock" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.toml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib.rs" afterDir="false" />
@@ -346,7 +345,7 @@
       <workItem from="1770555932314" duration="51000" />
       <workItem from="1770556039568" duration="5541000" />
       <workItem from="1770571213683" duration="570000" />
-      <workItem from="1770574888498" duration="10965000" />
+      <workItem from="1770574888498" duration="13184000" />
     </task>
     <task id="LOCAL-00001" summary="first commit">
       <option name="closed" value="true" />
@@ -580,7 +579,15 @@
       <option name="project" value="LOCAL" />
       <updated>1770562499014</updated>
     </task>
-    <option name="localTasksCounter" value="30" />
+    <task id="LOCAL-00030" summary="improving the readme">
+      <option name="closed" value="true" />
+      <created>1770593124155</created>
+      <option name="number" value="00030" />
+      <option name="presentableId" value="LOCAL-00030" />
+      <option name="project" value="LOCAL" />
+      <updated>1770593124155</updated>
+    </task>
+    <option name="localTasksCounter" value="31" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

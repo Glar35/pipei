@@ -2,7 +2,7 @@
 name = "pipei"
 version = "0.3.0"
 edition = "2021"
-description = "Generalized pipe and tap traits for partial application and multi-argument chaining."
+description = "Generalized `pipe` and `tap` traits for multi-argument chaining and partial application."
 keywords = ["pipe", "tap", "chaining", "curry", "functional"]
 categories = ["rust-patterns", "no-std", "development-tools::debugging"]
 license = "MIT OR Apache-2.0"

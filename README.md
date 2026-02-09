@@ -1,15 +1,14 @@
 # pipe{i}
 
-_pipei_ provides a zero-cost, type-safe mechanism for chaining function calls using method syntax, including multi-argument functions.
-It allows writing `x.pipe(f)(y, z)` in place of `f(x, y, z)`, and supports reusable partial application by returning a closure over the remaining arguments.
+_pipei_ allows writing `x.pipe(f)(y, z)` in place of `f(x, y, z)`, enabling method-style chaining and reusable partial application by returning a closure over the remaining arguments.
 The library similarly provides a multi-argument `tap` operator for side effects that returns the original value.
 
 This project is inspired by the [UMCS proposal](https://internals.rust-lang.org/t/weird-syntax-idea-s-for-umcs/19200/35). It requires nightly Rust for `#![feature(impl_trait_in_assoc_type)]`.
 
 ## Installation
 
-To optimize compile times, enable only the arities you need (from 0 up to 50).
-Use `up_to_N` features (available in multiples of 5) or specific individual arity features.
+To optimize compile time, enable only the arities you need (from 0 up to 50).
+Use `up_to_N` features (available in multiples of five) or enable individual arity features.
 
 ```toml
 [dependencies]
@@ -20,8 +19,8 @@ pipei = "*" # default: features = ["up_to_5"]
 
 ## Basic chaining
 
-`pipe` passes the value into the function and returns the result. 
-`tap` passes the value for a side-effect — logging, assertion, mutation — and returns the original value.
+`pipe` passes the value to the function and returns the result. 
+`tap` passes the value for a side effect—logging, assertions, or mutation—and returns the original value.
 
 
 ```rust
@@ -51,7 +50,7 @@ assert_eq!(val, 5);
 
 ## Partial Application
 
-`pipe` curries the first argument of a function, creating a standalone, reusable function that accepts the remaining arguments.
+`pipe` curries the first argument of a function, producing a standalone reusable function that accepts the remaining arguments.
 
 ```rust
 use pipei::Pipe;
@@ -77,9 +76,9 @@ assert_eq!(discounted, [80.0, 160.0, 240.0]);
 
 ## `TapWith`
 
-`tap_with` takes a projection that returns `Option`; if the result is `Some`, the side-effect runs on the projected value.
-This bridges the gap when a side-effect's signature doesn't match the receiver — the projection adapts one to the other, whether by accessing a field, calling `.as_ref()`, `.as_bytes()`, or any other transformation.
-It subsumes the specialized methods from the [`tap`](https://crates.io/crates/tap) crate (`tap_mut`, `tap_err`, `tap_dbg`, etc.) through a single generic projection.
+`tap_with` takes a projection that returns an `Option`; if the result is `Some`, the side effect runs on the projected value.
+This bridges the gap when a side effect’s signature does not match the receiver: the projection adapts one to the other, whether by accessing a field, calling `.as_ref()`, `.as_bytes()`, or any other transformation.
+It subsumes the specialized methods from the [`tap`](https://crates.io/crates/tap) crate (`tap_ok`, `tap_dbg`, etc.) using a single generic projection.
 
 ```rust
 use pipei::TapWith;
@@ -116,7 +115,7 @@ assert_eq!(final_req.attempts, 4);
 
 ## Comparison with the _tap_ crate
 
-_pipei_ generalizes _tap_ to support multi-argument functions, reducing syntactic noise and simplifying control flow when pipelines involve `Result` or `Option` types.
+_pipei_ generalizes _tap_ to support multi-argument functions, reducing syntactic noise and simplifying control flow in pipelines involving `Result` or `Option`.
 
 **Standard Rust:**
 The reading order is inverted ("inside-out"): `save` is written first, but executes last.

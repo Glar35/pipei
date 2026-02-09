@@ -4,15 +4,15 @@
 
 //! # pipei
 //!
-//! A zero-cost library for chaining multi-argument function calls using method syntax.
+//! A zero-cost library for chaining multi-argument function calls in method syntax.
 //!
-//! `pipe` allows writing `x.pipe(f)(y, z)` instead of `f(x, y, z)` by currying the receiver into the first argument position.
-//! `tap` provides the same call form for side effects: it passes the value to a function for inspection or mutation, then returns the original value.
+//! `pipe` allows writing `x.pipe(f)(y, z)` instead of `f(x, y, z)` by currying the receiver into the first argument.
+//! `tap` provides the same call form for side effects: it passes the value to a function for inspection or mutation and then returns the original value.
 //!
 //! ## Extension traits
 //!
-//! * **[`Pipe::pipe`]:** Curries `self` into the first argument of a function and returns the result.
-//! * **[`Tap::tap`]:** Passes `self` to a function for inspection or mutation, then returns (the possibly modified) `self`.
+//! * **[`Pipe::pipe`]:** Curries `self` into the first argument of a function, returning the result.
+//! * **[`Tap::tap`]:** Passes `self` to a function for inspection or mutation, then returns the original (now possibly modified) value.
 //! * **[`TapWith::tap_with`]:** Like `tap`, but first applies a projection; the side effect only runs if the projection returns `Some`.
 //!
 //! ```rust
@@ -74,7 +74,7 @@ pub trait Pipe<const ARITY: usize, AState, RState> {
     ///
     /// # Example
     /// ```rust
-    /// # use crate::pipei::Pipe;
+    /// # use pipei::Pipe;
     /// fn add(a: i32, b: i32) -> i32 { a + b }
     ///
     /// assert_eq!(10i32.pipe(add)(5), 15);
@@ -106,7 +106,7 @@ pub trait Tap<const ARITY: usize, State> {
     ///
     /// # Example
     /// ```rust
-    /// # use crate::pipei::Tap;
+    /// # use pipei::Tap;
     /// fn log(x: &i32) { /* inspect via &T */ }
     ///
     /// let val = 10.tap(log)()                     // immutable: passes &i32
@@ -126,8 +126,8 @@ impl<const ARITY: usize, State, T> Tap<ARITY, State> for T {}
 
 /// Extension trait for running side effects on a projection of the value.
 pub trait TapWith<const ARITY: usize, State> {
-    /// Runs a side-effect on a projection of `self`. The projection returns an
-    /// `Option`; if `Some`, the side-effect runs on the inner value. If `None`,
+    /// Runs a side effect on a projection of `self`. The projection returns an
+    /// `Option`; if `Some`, the side effect runs on the inner value. If `None`,
     /// nothing happens. In both cases, the original value is returned.
     ///
     /// This subsumes specialized tapping patterns like `tap_ok`, `tap_err`,
@@ -136,7 +136,7 @@ pub trait TapWith<const ARITY: usize, State> {
     ///
     /// # Example
     /// ```rust
-    /// # use crate::pipei::TapWith;
+    /// # use pipei::TapWith;
     /// struct Response { status: u32, body: String }
     ///
     /// fn log_status(code: &u32) { println!("status: {code}"); }
