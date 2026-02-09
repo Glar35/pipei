@@ -48,7 +48,7 @@ impl Discount {
 
 let season_pass = Discount { rate: 0.20 };
 
-// Equivalent to the (hypothetical): let apply_discount = season_pass.apply;
+// Equivalent to (the hypothetical): let apply_discount = season_pass.apply;
 let apply_discount = season_pass.pipe(Discount::apply);
 
 let prices = [100.0, 200.0, 300.0];
