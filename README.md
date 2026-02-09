@@ -104,7 +104,7 @@ save(
 );
 ```
 
-**Using _tap_**
+**Using _tap_:**
 Since `?` applies inside the closure, the closure returns a `Result`, forcing manual `Ok` wrapping and an extra `?`.
 ```rust
 load("background.png")?
