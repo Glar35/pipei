@@ -17,7 +17,7 @@ include = [
 [dependencies]
 
 [features]
-default = ["up_to_15"]
+default = ["up_to_10"]
 
 up_to_5   = ["0","1","2","3","4","5"]
 up_to_10  = ["up_to_5","6","7","8","9","10"]

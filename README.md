@@ -3,7 +3,7 @@
 _pipei_ allows writing `x.pipe(f)(y, z)` in place of `f(x, y, z)`, enabling method-style chaining and partial application for multi-argument functions.
 It also provides `tap` and `tap_with` for multi-argument side effects that return the original value.
 
-This project is inspired by the [UMCS (Unified Method Call Syntax) proposal](https://internals.rust-lang.org/t/weird-syntax-idea-s-for-umcs/19200/35). It requires nightly Rust for `#![feature(impl_trait_in_assoc_type)]`.
+This project is inspired by the [UMCS (Unified Method Call Syntax) proposal](https://internals.rust-lang.org/t/weird-syntax-idea-s-for-umcs/19200). It requires nightly Rust for `#![feature(impl_trait_in_assoc_type)]`.
 
 ### Basic Chaining
 
@@ -137,7 +137,7 @@ Use `up_to_N` features (available in multiples of five) or enable individual ari
 
 ```toml
 [dependencies]
-pipei = "*" # default: features = ["up_to_15"]
+pipei = "*" # default: features = ["up_to_10"]
 # pipei = { version = "*", features = ["up_to_20", "31"] }  
 # pipei = { version = "*", features = ["0", "1", "3", "4"] }
 ```
