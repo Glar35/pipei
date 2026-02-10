@@ -50,21 +50,14 @@ pub struct PipeMark;
 #[doc(hidden)]
 /// Internal: curries a function's first argument, producing a closure over the remaining arguments.
 pub trait Curry<const ARITY: usize, Args, AState, RState, MARK, A0: ?Sized, R: ?Sized> {
-    type Curry<'a>
-    where
-        Self: 'a,
-        A0: 'a;
-    fn curry<'a>(self, arg0: A0) -> Self::Curry<'a>;
+    type Curry;
+    fn curry(self, arg0: A0) -> Self::Curry;
 }
 #[doc(hidden)]
 /// Internal: curries a function's first argument through an `Option`-returning projection.
 pub trait CurryWith<const ARITY: usize, Args, State, A0: ?Sized, P, R: ?Sized> {
-    type Curry<'a>
-    where
-        Self: 'a,
-        A0: 'a,
-        P: 'a;
-    fn curry_with<'a>(self, arg0: A0, proj: P) -> Self::Curry<'a>;
+    type Curry;
+    fn curry_with(self, arg0: A0, proj: P) -> Self::Curry;
 }
 
 // ============================================================================================
@@ -105,7 +98,7 @@ pub trait Pipe<const ARITY: usize, AState, RState> {
     /// assert_eq!(data[0], 99);
     /// ```
     #[inline(always)]
-    fn pipe<'a, R, F, Args>(self, f: F) -> F::Curry<'a>
+    fn pipe<R, F, Args>(self, f: F) -> F::Curry
     where
         F: Curry<ARITY, Args, AState, RState, PipeMark, Self, R>,
         Self: Sized,
@@ -145,7 +138,7 @@ pub trait Tap<const ARITY: usize, State> {
     /// assert_eq!(s.count, 10);
     /// ```
     #[inline(always)]
-    fn tap<'a, R, F, Args>(self, f: F) -> F::Curry<'a>
+    fn tap<R, F, Args>(self, f: F) -> F::Curry
     where
         F: Curry<ARITY, Args, State, Own, TapMark, Self, R>,
         Self: Sized,
@@ -202,7 +195,7 @@ pub trait TapWith<const ARITY: usize, State> {
     /// assert_eq!(req.attempts, 4);
     /// ```
     #[inline(always)]
-    fn tap_with<'a, R, F, P, Args>(self, proj: P, f: F) -> F::Curry<'a>
+    fn tap_with<'a, R, F, P, Args>(self, proj: P, f: F) -> F::Curry
     where
         F: CurryWith<ARITY, Args, State, Self, P, R>,
         Self: Sized,
@@ -226,8 +219,8 @@ macro_rules! impl_arity {
             #[cfg(feature = $feat)]
             impl<F, A0, $($Args,)* R> Curry<$N, $TupleType, Imm, Own, PipeMark, A0, R> for F
             where F: for<'b> Fn(&'b A0, $($Args),*) -> R {
-                type Curry<'a> = impl Fn($($Args),*) -> R where F: 'a, A0: 'a;
-                #[inline(always)] fn curry<'a>(self, arg0: A0) -> Self::Curry<'a> {
+                type Curry = impl Fn($($Args),*) -> R;
+                #[inline(always)] fn curry(self, arg0: A0) -> Self::Curry {
                     move |$($Args),*| self(&arg0, $($Args),*)
                 }
             }
@@ -235,8 +228,8 @@ macro_rules! impl_arity {
             #[cfg(feature = $feat)]
             impl<F, A0, $($Args,)* R> Curry<$N, $TupleType, Own, Own, PipeMark, A0, R> for F
             where F: FnOnce(A0, $($Args),*) -> R {
-                type Curry<'a> = impl FnOnce($($Args),*) -> R where F: 'a, A0: 'a;
-                #[inline(always)] fn curry<'a>(self, arg0: A0) -> Self::Curry<'a> {
+                type Curry= impl FnOnce($($Args),*) -> R;
+                #[inline(always)] fn curry(self, arg0: A0) -> Self::Curry {
                     move |$($Args),*| self(arg0, $($Args),*)
                 }
             }
@@ -244,8 +237,8 @@ macro_rules! impl_arity {
             #[cfg(feature = $feat)]
             impl<F, A0, $($Args,)* R> Curry<$N, $TupleType, Mut, Own, PipeMark, A0, R> for F
             where F: for<'b> FnMut(&'b mut A0, $($Args),*) -> R {
-                type Curry<'a> = impl FnMut($($Args),*) -> R where F: 'a, A0: 'a;
-                #[inline(always)] fn curry<'a>(mut self, mut arg0: A0) -> Self::Curry<'a> {
+                type Curry = impl FnMut($($Args),*) -> R;
+                #[inline(always)] fn curry(mut self, mut arg0: A0) -> Self::Curry {
                     move |$($Args),*| self(&mut arg0, $($Args),*)
                 }
             }
@@ -254,8 +247,8 @@ macro_rules! impl_arity {
             #[cfg(feature = $feat)]
             impl<F, A0, $($Args,)* R> Curry<$N, $TupleType, Imm, Own, TapMark, A0, R> for F
             where F: FnOnce(& A0, $($Args),*) -> R {
-                type Curry<'a> = impl FnOnce($($Args),*) -> A0 where F: 'a, A0: 'a;
-                #[inline(always)] fn curry<'a>(self, arg0: A0) -> Self::Curry<'a> {
+                type Curry = impl FnOnce($($Args),*) -> A0;
+                #[inline(always)] fn curry(self, arg0: A0) -> Self::Curry {
                     move |$($Args),*| { self(&arg0, $($Args),*); arg0 }
                 }
             }
@@ -263,21 +256,21 @@ macro_rules! impl_arity {
             #[cfg(feature = $feat)]
             impl<F, A0, $($Args,)* R> Curry<$N, $TupleType, Mut, Own, TapMark, A0, R> for F
             where F: FnOnce(&mut A0, $($Args),*) -> R {
-                type Curry<'a> = impl FnOnce($($Args),*) -> A0 where F: 'a, A0: 'a;
-                #[inline(always)] fn curry<'a>(self, mut arg0: A0) -> Self::Curry<'a> {
+                type Curry = impl FnOnce($($Args),*) -> A0;
+                #[inline(always)] fn curry(self, mut arg0: A0) -> Self::Curry {
                     move |$($Args),*| { self(&mut arg0, $($Args),*); arg0 }
                 }
             }
 
-            // --- Tap With (Projection) ---
+            // --- Tap With ---
             #[cfg(feature = $feat)]
             impl<F, P, A0, T: ?Sized, $($Args,)* R> CurryWith<$N, $TupleType, Imm, A0, P, R> for F
             where
                 P: for<'b> FnOnce(&'b A0) -> Option<&'b T>,
                 F: FnOnce(&T, $($Args),*) -> R
             {
-                type Curry<'a> = impl FnOnce($($Args),*) -> A0 where F: 'a, A0: 'a, P: 'a;
-                #[inline(always)] fn curry_with<'a>(self, arg0: A0, proj: P) -> Self::Curry<'a> {
+                type Curry = impl FnOnce($($Args),*) -> A0;
+                #[inline(always)] fn curry_with(self, arg0: A0, proj: P) -> Self::Curry {
                     move |$($Args),*| {
                         if let Some(v) = proj(&arg0) { self(v, $($Args),*); }
                         arg0
@@ -291,8 +284,8 @@ macro_rules! impl_arity {
                 P: for<'b> FnOnce(&'b mut A0) -> Option<&'b mut T>,
                 F: FnOnce(& mut T, $($Args),*) -> R
             {
-                type Curry<'a> = impl FnOnce($($Args),*) -> A0 where F: 'a, A0: 'a, P: 'a;
-                #[inline(always)] fn curry_with<'a>(self, mut arg0: A0, proj: P) -> Self::Curry<'a> {
+                type Curry = impl FnOnce($($Args),*) -> A0;
+                #[inline(always)] fn curry_with(self, mut arg0: A0, proj: P) -> Self::Curry {
                     move |$($Args),*| {
                         if let Some(v) = proj(&mut arg0) { self(v, $($Args),*); }
                         arg0
