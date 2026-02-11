@@ -15,6 +15,11 @@
 //! * **[`Tap::tap`]:** Passes `self` to a function for inspection or mutation, then returns the original (now possibly modified) value.
 //! * **[`TapWith::tap_with`]:** Like `tap`, but first applies a projection; the side effect only runs if the projection returns `Some`.
 //!
+//! ## Projection combinators
+//!
+//! * **[`with`]:** Composes a projection with a function: `tap(with(proj, f))(args)` calls `f(proj(x), args…)`.
+//! * **[`with_cond`]:** Like `with`, but the projection returns `Option`; the side effect only runs on `Some`.
+//!
 //! ```rust
 //! # use pipei::{Pipe, Tap};
 //! fn add(a: i32, b: i32) -> i32 { a + b }
@@ -61,11 +66,42 @@ pub trait CurryWith<const ARITY: usize, Args, State, A0: ?Sized, P, R: ?Sized> {
 }
 
 // ============================================================================================
+// with Traits
+// ============================================================================================
+
+#[doc(hidden)]
+pub trait ArgsFor<const ARITY: usize> {}
+
+/// Wrapper returned by [`with`]. Composes a projection with a function.
+pub struct With<P, F> {
+    proj: P,
+    f: F
+}
+
+// /// Wrapper returned by [`with_cond`]. Composes an `Option`-returning projection with a function.
+// pub struct WithCond<P, F>{
+//     proj: P,
+//     f: F
+// }
+
+/// Composes a projection with a function for use with [`Tap::tap`].
+#[inline(always)]
+pub fn with<P, F>(proj: P, f: F) -> With<P, F> {
+    With { proj, f }
+}
+
+// /// Composes an `Option`-returning projection with a function for use with [`Tap::tap`].
+// #[inline(always)]
+// pub fn with_cond<P, F>(proj: P, f: F) -> WithCond<P, F> {
+//     WithCond { proj, f }
+// }
+
+// ============================================================================================
 // Public Extension Traits
 // ============================================================================================
 
 /// Extension trait for transforming values.
-pub trait Pipe<const ARITY: usize, AState, RState> {
+pub trait Pipe<AState, RState> {
     /// Curries `self` as the first argument of `f`, returning a closure over
     /// the remaining arguments. The returned closure is a standalone value,
     /// so `pipe` doubles as partial application.
@@ -98,18 +134,19 @@ pub trait Pipe<const ARITY: usize, AState, RState> {
     /// assert_eq!(data[0], 99);
     /// ```
     #[inline(always)]
-    fn pipe<R, F, Args>(self, f: F) -> F::Curry
+    fn pipe<const ARITY: usize, R, F, Args>(self, f: F) -> F::Curry
     where
         F: Curry<ARITY, Args, AState, RState, PipeMark, Self, R>,
+        Args: ArgsFor<ARITY>,
         Self: Sized,
     {
         f.curry(self)
     }
 }
-impl<const ARITY: usize, AState, RState, T> Pipe<ARITY, AState, RState> for T {}
+impl<AState, RState, T> Pipe<AState, RState> for T {}
 
 /// Extension trait for running side effects, returning the original value.
-pub trait Tap<const ARITY: usize, State> {
+pub trait Tap<State> {
     /// Passes `self` into `f` for inspection or mutation, then returns the
     /// original (possibly modified) value. The function receives `self` by
     /// shared or exclusive reference depending on its signature.
@@ -138,15 +175,16 @@ pub trait Tap<const ARITY: usize, State> {
     /// assert_eq!(s.count, 10);
     /// ```
     #[inline(always)]
-    fn tap<R, F, Args>(self, f: F) -> F::Curry
+    fn tap<const ARITY: usize, R, F, Args>(self, f: F) -> F::Curry
     where
         F: Curry<ARITY, Args, State, Own, TapMark, Self, R>,
+        Args: ArgsFor<ARITY>,
         Self: Sized,
     {
         f.curry(self)
     }
 }
-impl<const ARITY: usize, State, T> Tap<ARITY, State> for T {}
+impl<State, T> Tap<State> for T {}
 
 /// Extension trait for running side effects on a projection of the value.
 pub trait TapWith<const ARITY: usize, State> {
@@ -292,6 +330,26 @@ macro_rules! impl_arity {
                     }
                 }
             }
+
+            // --- With as Tap ---
+            #[cfg(feature = $feat)]
+            impl<$($Args,)*> crate::ArgsFor<$N> for $TupleType {}
+
+            #[cfg(feature = $feat)]
+            impl<F, P, A0, T: ?Sized, $($Args,)* R> Curry<$N, $TupleType, Imm, Own, TapMark, A0, R> for With<P, F>
+            where
+                P: for<'b> FnOnce(&'b A0) -> &'b T,
+                F: FnOnce(&T, $($Args),*) -> R,
+            {
+                type Curry = impl FnOnce($($Args),*) -> A0;
+                #[inline(always)]
+                fn curry(self, arg0: A0) -> Self::Curry {
+                    move |$($Args),*| {
+                        (self.f)((self.proj)(&arg0), $($Args),*);
+                        arg0
+                    }
+                }
+            }
         };
     };
 }
@@ -360,8 +418,10 @@ mod tests {
         }
 
         let c = Container { val: 10 };
-        // Explicit typing needed to resolve ambiguity between Imm and Mut source paths
         let res = c.tap_with(|x: &Container| Some(&x.val), check_val)();
+        // let proj = |x: &Container| &x.val;
+        // let with = with(|x: &Container| &x.val, check_val);
+        // let res = c.tap(with)();
         assert_eq!(res.val, 10);
     }
 
