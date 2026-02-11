@@ -53,11 +53,7 @@
     </cargoProject>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9a160d57-da59-441c-aa3b-69ef0db1b8be" name="Changes" comment="improving the documentation">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib.rs" afterDir="false" />
-    </list>
+    <list default="true" id="9a160d57-da59-441c-aa3b-69ef0db1b8be" name="Changes" comment="tap_with -&gt; tap_proj and tap_cond" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -354,7 +350,7 @@
       <workItem from="1770664097793" duration="1972000" />
       <workItem from="1770674355243" duration="1225000" />
       <workItem from="1770751448382" duration="10387000" />
-      <workItem from="1770804360099" duration="13580000" />
+      <workItem from="1770804360099" duration="13793000" />
     </task>
     <task id="LOCAL-00001" summary="first commit">
       <option name="closed" value="true" />
@@ -732,7 +728,23 @@
       <option name="project" value="LOCAL" />
       <updated>1770807358379</updated>
     </task>
-    <option name="localTasksCounter" value="48" />
+    <task id="LOCAL-00048" summary="improving the documentation">
+      <option name="closed" value="true" />
+      <created>1770843134501</created>
+      <option name="number" value="00048" />
+      <option name="presentableId" value="LOCAL-00048" />
+      <option name="project" value="LOCAL" />
+      <updated>1770843134501</updated>
+    </task>
+    <task id="LOCAL-00049" summary="tap_with -&gt; tap_proj and tap_cond">
+      <option name="closed" value="true" />
+      <created>1770843202954</created>
+      <option name="number" value="00049" />
+      <option name="presentableId" value="LOCAL-00049" />
+      <option name="project" value="LOCAL" />
+      <updated>1770843202954</updated>
+    </task>
+    <option name="localTasksCounter" value="50" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -758,6 +770,7 @@
     <MESSAGE value="minor changes" />
     <MESSAGE value="improving the readme" />
     <MESSAGE value="improving the documentation" />
-    <option name="LAST_COMMIT_MESSAGE" value="improving the documentation" />
+    <MESSAGE value="tap_with -&gt; tap_proj and tap_cond" />
+    <option name="LAST_COMMIT_MESSAGE" value="tap_with -&gt; tap_proj and tap_cond" />
   </component>
 </project>
