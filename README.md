@@ -1,7 +1,7 @@
 # pipe{i}
 
 _pipei_ allows writing `x.pipe(f)(y, z)` in place of `f(x, y, z)`, enabling method-style chaining and partial application for multi-argument functions.
-It also provides `tap` for multi-argument side effects that return the original value, and `with`/`with_cond` combinators for projecting the receiver before a side effect.
+It also provides `tap` and `tap_with` for multi-argument side effects that return the original value.
 
 This project is inspired by the [UMCS (Unified Method Call Syntax) proposal](https://internals.rust-lang.org/t/weird-syntax-idea-s-for-umcs/19200). It requires nightly Rust for `#![feature(impl_trait_in_assoc_type)]`.
 
@@ -59,12 +59,12 @@ assert_eq!(discounted, [80.0, 160.0, 240.0]);
 
 ### Projection
 
-`with` lets you compose an existing function with a projection on the receiver when the function's signature doesn't match the receiver directly.
-`with_cond` does the same but the projection returns an `Option` to allow for _conditional execution_; returning `None` skips the side effect.
+`tap_with` lets you compose an existing function with a projection on the receiver when the function's signature doesn't match the receiver directly. 
+The projection returns an `Option` to allow for _conditional execution_; returning `None` skips the side effect. 
 Like `tap`, the original value is always returned.
 
 ```rust
-use pipei::{Tap, with, with_cond};
+use pipei::TapWith;
 struct Request { url: String, attempts: u32 }
 
 fn track_retry(count: &mut u32) { *count += 1 }
@@ -72,19 +72,19 @@ fn log_trace<T: core::fmt::Debug>(val: &T, label: &str) { /* ... */ }
 
 let mut req = Request { url: "https://pipei.rs".into(), attempts: 3 };
 
-(&mut req).tap(with(|r: &mut &mut Request| &mut r.attempts, track_retry))();
+(&mut req).tap_with(|r| Some(&mut r.attempts), track_retry)();
 assert_eq!(req.attempts, 4);
 
 // tap only on Err
 let res = Err::<(), _>(503)
-.tap(with_cond(|x| x.as_ref().err(), log_trace))("request failed");
+    .tap_with(|x| x.as_ref().err(), log_trace)("request failed");
 assert_eq!(res.unwrap_err(), 503);
 
 // tap only in debug builds
-let req = req.tap(with_cond(|r| {
-#[cfg(debug_assertions)] { Some(r) }
-#[cfg(not(debug_assertions))] { None }
-}, log_trace))("FINAL");
+let req = req.tap_with(|r| {
+    #[cfg(debug_assertions)] { Some(r) }
+    #[cfg(not(debug_assertions))] { None }
+    }, log_trace)("FINAL");
 assert_eq!(req.attempts, 4);
 ```
 
@@ -97,12 +97,12 @@ This has the advantage of simplifying fallible pipelines, particularly when usin
 In the following example, the reading order is inverted ("inside-out"): `save` is written first, but executes last.
 ```rust
 save(
-composite_onto(
-load("background.png")?,
-resize(load("overlay.png")?, 50),
-0.8
-),
-"result.png"
+    composite_onto(
+        load("background.png")?,            
+        resize(load("overlay.png")?, 50),   
+        0.8                                 
+    ),
+    "result.png"                            
 );
 ```
 
@@ -110,23 +110,23 @@ resize(load("overlay.png")?, 50),
 Since `?` applies inside the closure, the closure returns a `Result`, forcing manual `Ok` wrapping and an extra `?`.
 ```rust
 load("background.png")?
-.pipe(|bg| {
-let overlay = load("overlay.png")?
-.pipe(|fg| resize(fg, 50));
-
-Ok(composite_onto(bg, overlay, 0.8))
-})?
-.pipe(|img| save(img, "result.png"));
+    .pipe(|bg| {
+        let overlay = load("overlay.png")?
+            .pipe(|fg| resize(fg, 50));
+        
+        Ok(composite_onto(bg, overlay, 0.8))
+    })? 
+    .pipe(|img| save(img, "result.png"));
 ```
 
 **With _pipei_:**
 ```rust
 load("background.png")?
-.pipe(composite_onto)(
-load("overlay.png")?.pipe(resize)(50),
-0.8,
-)
-.pipe(save)("result.png");
+    .pipe(composite_onto)(
+        load("overlay.png")?.pipe(resize)(50), 
+        0.8,
+    )
+    .pipe(save)("result.png");
 ```
 
 ### Feature Flags
