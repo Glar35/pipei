@@ -1,7 +1,7 @@
 # pipe{i}
 
 _pipei_ allows writing `x.pipe(f)(y, z)` in place of `f(x, y, z)`, enabling method-style chaining and partial application for multi-argument functions.
-It also provides `tap` and `tap_with` for multi-argument side effects that return the original value.
+It also provides `tap` for multi-argument side effects that return the original value, `tap_proj` to compose a projection with a side effect, and `tap_cond` for conditional projections that return `Option`.
 
 This project is inspired by the [UMCS (Unified Method Call Syntax) proposal](https://internals.rust-lang.org/t/weird-syntax-idea-s-for-umcs/19200). It requires nightly Rust for `#![feature(impl_trait_in_assoc_type)]`.
 
@@ -59,8 +59,8 @@ assert_eq!(discounted, [80.0, 160.0, 240.0]);
 
 ### Projection
 
-`tap_with` lets you compose an existing function with a projection on the receiver when the function's signature doesn't match the receiver directly. 
-The projection returns an `Option` to allow for _conditional execution_; returning `None` skips the side effect. 
+`tap_proj` lets you compose an existing function with a projection on the receiver when the function's signature doesn't match the receiver directly.
+`tap_cond` does the same but the projection returns `Option`, allowing for _conditional execution_; returning `None` skips the side effect.
 Like `tap`, the original value is always returned.
 
 ```rust
@@ -72,16 +72,17 @@ fn log_trace<T: core::fmt::Debug>(val: &T, label: &str) { /* ... */ }
 
 let mut req = Request { url: "https://pipei.rs".into(), attempts: 3 };
 
-(&mut req).tap_with(|r| Some(&mut r.attempts), track_retry)();
-assert_eq!(req.attempts, 4);
+let req_ref = (&mut req).tap_proj(|r| &mut r.attempts, track_retry)();
 
-// tap only on Err
+assert_eq!(req_ref.attempts, 4);
+
+// tap_cond: tap only on Err
 let res = Err::<(), _>(503)
-    .tap_with(|x| x.as_ref().err(), log_trace)("request failed");
+    .tap_cond(|x| x.as_ref().err(), log_trace)("request failed");
 assert_eq!(res.unwrap_err(), 503);
 
-// tap only in debug builds
-let req = req.tap_with(|r| {
+// tap_cond: tap only in debug builds
+let req = req.tap_cond(|r| {
     #[cfg(debug_assertions)] { Some(r) }
     #[cfg(not(debug_assertions))] { None }
     }, log_trace)("FINAL");
@@ -106,7 +107,7 @@ save(
 );
 ```
 
-**With the _tap_ crate:**
+**With `pipe` from the _tap_ crate:**
 Since `?` applies inside the closure, the closure returns a `Result`, forcing manual `Ok` wrapping and an extra `?`.
 ```rust
 load("background.png")?

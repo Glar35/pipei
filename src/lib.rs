@@ -13,11 +13,8 @@
 //!
 //! * **[`Pipe::pipe`]:** Curries `self` into the first argument of a function, returning the result.
 //! * **[`Tap::tap`]:** Passes `self` to a function for inspection or mutation, then returns the original (now possibly modified) value.
-//!
-//! ## Projection combinators
-//!
-//! * **[`With::comp`] / [`With::comp_mut`]:** Composes a projection with a function: `tap(With::comp(proj, f))(args)` calls `f(proj(x), args…)`.
-//! * **[`With::cond`] / [`With::cond_mut`]:** Like `comp`, but the projection returns `Option`; the side effect only runs on `Some`.
+//! * **[`TapWith::tap_proj`]:** Like `tap`, but first applies a projection to extract a sub-reference.
+//! * **[`TapWith::tap_cond`]:** Like `tap_proj`, but the projection returns `Option`; the side effect only runs on `Some`.
 //!
 //! ```rust
 //! # use pipei::{Pipe, Tap};
@@ -52,135 +49,24 @@ pub struct TapMark;
 /// Marker type: `pipe` semantics (return the function's result).
 pub struct PipeMark;
 #[doc(hidden)]
+/// Marker type: `tap_proj` semantics (unconditional projection).
+pub struct Proj;
+#[doc(hidden)]
+/// Marker type: `tap_cond` semantics (conditional projection via Option).
+pub struct Cond;
+
+#[doc(hidden)]
 /// Internal: curries a function's first argument, producing a closure over the remaining arguments.
 pub trait Curry<const ARITY: usize, Args, AState, RState, MARK, A0: ?Sized, R: ?Sized> {
     type Curry;
     fn curry(self, arg0: A0) -> Self::Curry;
 }
 
-// ============================================================================================
-// Projection Combinators
-// ============================================================================================
-
 #[doc(hidden)]
-pub trait ArgsFor<const ARITY: usize> {}
-
-#[doc(hidden)]
-/// Marker: projection always produces a value.
-pub struct Comp;
-#[doc(hidden)]
-/// Marker: projection returns `Option`; side effect only runs on `Some`.
-pub struct Cond;
-
-/// Composes a projection with a side-effect function for use with [`Tap::tap`].
-///
-/// `With` bridges the gap when a function's first argument doesn't match the
-/// pipeline value directly. The projection extracts or transforms a reference
-/// before forwarding it to the function.
-///
-/// Constructed via associated functions that differ in two dimensions:
-///
-/// | | always runs | conditional (`Option`) |
-/// |---|---|---|
-/// | **`&T`** (immutable) | [`With::comp`] | [`With::cond`] |
-/// | **`&mut T`** (mutable) | [`With::comp_mut`] | [`With::cond_mut`] |
-///
-/// The `Imm`/`Mut` distinction is resolved automatically by the [`Curry`] impl,
-/// just like plain [`Tap::tap`].
-///
-/// # Examples
-///
-/// ```rust
-/// # use pipei::{Tap, With};
-/// struct Pair { a: i32, b: i32 }
-/// fn check(v: &i32) { assert!(*v > 0); }
-/// fn increment(v: &mut i32) { *v += 1; }
-///
-/// let p = Pair { a: 1, b: 2 }
-///     .tap(With::comp(|p: &Pair| &p.a, check))()
-///     .tap(With::comp_mut(|p: &mut Pair| &mut p.b, increment))();
-/// assert_eq!(p.b, 3);
-/// ```
-pub struct With<P, F, T: ?Sized, Mode> {
-    proj: P,
-    f: F,
-    _marker: core::marker::PhantomData<fn() -> (*const T, Mode)>,
-}
-
-impl<P, F, T: ?Sized> With<P, F, T, Comp> {
-    /// Composes an immutable projection (`&A0 → &T`) with a function. Always runs.
-    ///
-    /// ```rust
-    /// # use pipei::{Tap, With};
-    /// struct Pair { a: i32, b: i32 }
-    /// fn check(v: &i32) { assert!(*v > 0); }
-    ///
-    /// let p = Pair { a: 1, b: 2 };
-    /// let p = p.tap(With::comp(|p: &Pair| &p.a, check))();
-    /// assert_eq!(p.a, 1);
-    /// ```
-    #[inline(always)]
-    pub fn comp<A0>(proj: P, f: F) -> Self
-    where P: for<'a> Fn(&'a A0) -> &'a T
-    {
-        With { proj, f, _marker: core::marker::PhantomData }
-    }
-
-    /// Composes a mutable projection (`&mut A0 → &mut T`) with a function. Always runs.
-    ///
-    /// ```rust
-    /// # use pipei::{Tap, With};
-    /// struct Counter { count: i32 }
-    /// fn increment(v: &mut i32) { *v += 1; }
-    ///
-    /// let c = Counter { count: 0 };
-    /// let c = c.tap(With::comp_mut(|c: &mut Counter| &mut c.count, increment))();
-    /// assert_eq!(c.count, 1);
-    /// ```
-    #[inline(always)]
-    pub fn comp_mut<A0>(proj: P, f: F) -> Self
-    where P: for<'a> FnOnce(&'a mut A0) -> &'a mut T
-    {
-        With { proj, f, _marker: core::marker::PhantomData }
-    }
-}
-
-impl<P, F, T: ?Sized> With<P, F, T, Cond> {
-    /// Composes an immutable, `Option`-returning projection with a function.
-    /// The side effect runs only when the projection returns `Some`.
-    ///
-    /// ```rust
-    /// # use pipei::{Tap, With};
-    /// fn log_val(v: &i32) { println!("{v}"); }
-    ///
-    /// let val = Some(42)
-    ///     .tap(With::cond(|x: &Option<i32>| x.as_ref(), log_val))();
-    /// assert_eq!(val, Some(42));
-    /// ```
-    #[inline(always)]
-    pub fn cond<A0>(proj: P, f: F) -> Self
-    where P: for<'a> Fn(&'a A0) -> Option<&'a T>
-    {
-        With { proj, f, _marker: core::marker::PhantomData }
-    }
-
-    /// Composes a mutable, `Option`-returning projection with a function.
-    /// The side effect runs only when the projection returns `Some`.
-    ///
-    /// ```rust
-    /// # use pipei::{Tap, With};
-    /// fn add_ten(v: &mut i32) { *v += 10; }
-    ///
-    /// let val = Some(5)
-    ///     .tap(With::cond_mut(|x: &mut Option<i32>| x.as_mut(), add_ten))();
-    /// assert_eq!(val, Some(15));
-    /// ```
-    #[inline(always)]
-    pub fn cond_mut<A0>(proj: P, f: F) -> Self
-    where P: for<'a> FnOnce(&'a mut A0) -> Option<&'a mut T>
-    {
-        With { proj, f, _marker: core::marker::PhantomData }
-    }
+/// Internal: curries a function's first argument through a projection (conditional or unconditional).
+pub trait CurryWith<const ARITY: usize, Args, State, MARK, A0: ?Sized, P, R: ?Sized> {
+    type Curry;
+    fn curry_with(self, arg0: A0, proj: P) -> Self::Curry;
 }
 
 // ============================================================================================
@@ -188,7 +74,7 @@ impl<P, F, T: ?Sized> With<P, F, T, Cond> {
 // ============================================================================================
 
 /// Extension trait for transforming values.
-pub trait Pipe{
+pub trait Pipe<const ARITY: usize, AState, RState> {
     /// Curries `self` as the first argument of `f`, returning a closure over
     /// the remaining arguments. The returned closure is a standalone value,
     /// so `pipe` doubles as partial application.
@@ -221,19 +107,18 @@ pub trait Pipe{
     /// assert_eq!(data[0], 99);
     /// ```
     #[inline(always)]
-    fn pipe<const ARITY: usize, AState, RState, R, F, Args>(self, f: F) -> F::Curry
+    fn pipe<R, F, Args>(self, f: F) -> F::Curry
     where
         F: Curry<ARITY, Args, AState, RState, PipeMark, Self, R>,
-        Args: ArgsFor<ARITY>,
         Self: Sized,
     {
         f.curry(self)
     }
 }
-impl<T> Pipe for T {}
+impl<const ARITY: usize, AState, RState, T> Pipe<ARITY, AState, RState> for T {}
 
 /// Extension trait for running side effects, returning the original value.
-pub trait Tap {
+pub trait Tap<const ARITY: usize, State> {
     /// Passes `self` into `f` for inspection or mutation, then returns the
     /// original (possibly modified) value. The function receives `self` by
     /// shared or exclusive reference depending on its signature.
@@ -262,17 +147,87 @@ pub trait Tap {
     /// assert_eq!(s.count, 10);
     /// ```
     #[inline(always)]
-    fn tap<const ARITY: usize, State, R, F, Args>(self, f: F) -> F::Curry
+    fn tap<R, F, Args>(self, f: F) -> F::Curry
     where
         F: Curry<ARITY, Args, State, Own, TapMark, Self, R>,
-        Args: ArgsFor<ARITY>,
         Self: Sized,
     {
         f.curry(self)
     }
 }
-impl<T> Tap for T {}
+impl<const ARITY: usize, State, T> Tap<ARITY, State> for T {}
 
+/// Extension trait for running side effects on a projection (conditional or unconditional) of the value.
+pub trait TapWith<const ARITY: usize, State> {
+    /// Applies a projection to `self`, then runs `f` on the projected reference.
+    /// The projection returns `&T` or `&mut T` directly — it always runs.
+    /// The original value is returned.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use pipei::TapWith;
+    /// struct Pair { a: i32, b: i32 }
+    /// fn check(v: &i32) { assert!(*v > 0); }
+    /// fn increment(v: &mut i32) { *v += 1; }
+    ///
+    /// let p = Pair { a: 1, b: 2 }
+    ///     .tap_proj(|p: &Pair| &p.a, check)()
+    ///     .tap_proj(|p| &mut p.b, increment)();
+    /// assert_eq!(p.b, 3);
+    /// ```
+    #[inline(always)]
+    fn tap_proj<R, F, P, Args>(self, proj: P, f: F) -> F::Curry
+    where
+        F: CurryWith<ARITY, Args, State, Proj, Self, P, R>,
+        Self: Sized,
+    {
+        f.curry_with(self, proj)
+    }
+
+    /// Runs a side effect on a projection of `self`. The projection returns
+    /// an `Option`; if `Some`, the side effect runs on the projected value.
+    /// If `None`, the side effect is skipped. In both cases, `self` is returned.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use pipei::TapWith;
+    /// #[derive(Debug)]
+    /// struct Request { url: String, attempts: u32 }
+    ///
+    /// fn track_retry(count: &mut u32) { *count += 1 }
+    /// fn log_status(code: &u32, url: &str, count: u32) { eprintln!("{url}: error {code} (attempt {count})"); }
+    /// fn log_trace<T: core::fmt::Debug>(val: &T, label: &str) { eprintln!("{label}: {val:?}"); }
+    ///
+    /// let mut req = Request { url: "[https://pipei.rs](https://pipei.rs)".into(), attempts: 3 };
+    ///
+    /// // project to a mutable field
+    /// (&mut req).tap_cond(|r| Some(&mut r.attempts), track_retry)();
+    /// assert_eq!(req.attempts, 4);
+    ///
+    /// // tap only on Err
+    /// let res = Err::<Request, _>(503)
+    ///     .tap_cond(|x| x.as_ref().err(), log_status)(&req.url, req.attempts);
+    /// assert_eq!(res.unwrap_err(), 503);
+    ///
+    /// // tap only in debug builds
+    /// let req = req.tap_cond(|r| {
+    ///     #[cfg(debug_assertions)] { Some(r) }
+    ///     #[cfg(not(debug_assertions))] { None }
+    /// }, log_trace)("FINAL");
+    /// assert_eq!(req.attempts, 4);
+    /// ```
+    #[inline(always)]
+    fn tap_cond<R, F, P, Args>(self, proj: P, f: F) -> F::Curry
+    where
+        F: CurryWith<ARITY, Args, State, Cond, Self, P, R>,
+        Self: Sized,
+    {
+        f.curry_with(self, proj)
+    }
+}
+impl<const ARITY: usize, State, T> TapWith<ARITY, State> for T {}
 
 // ============================================================================================
 // Macro Logic
@@ -282,7 +237,7 @@ macro_rules! impl_arity {
     ($N:literal, $feat:literal, [ $($Args:ident),* ], $TupleType:ty) => {
         const _: () = {
             #[cfg(feature = $feat)]
-            use crate::{Imm, Curry, Mut, Own, PipeMark, TapMark, With, Comp, Cond};
+            use crate::{Imm, Curry, CurryWith, Mut, Own, PipeMark, TapMark, Proj, Cond};
 
             // --- Pipe ---
             #[cfg(feature = $feat)]
@@ -297,7 +252,7 @@ macro_rules! impl_arity {
             #[cfg(feature = $feat)]
             impl<F, A0, $($Args,)* R> Curry<$N, $TupleType, Own, Own, PipeMark, A0, R> for F
             where F: FnOnce(A0, $($Args),*) -> R {
-                type Curry= impl FnOnce($($Args),*) -> R;
+                type Curry = impl FnOnce($($Args),*) -> R;
                 #[inline(always)] fn curry(self, arg0: A0) -> Self::Curry {
                     move |$($Args),*| self(arg0, $($Args),*)
                 }
@@ -331,72 +286,63 @@ macro_rules! impl_arity {
                 }
             }
 
-            // --- With Comp (Imm) ---
+            // --- Tap Proj (CurryWith + Proj) ---
             #[cfg(feature = $feat)]
-            impl<$($Args,)*> crate::ArgsFor<$N> for $TupleType {}
-
-            #[cfg(feature = $feat)]
-            impl<F, P, A0, T: ?Sized, $($Args,)* R> Curry<$N, $TupleType, Imm, Own, TapMark, A0, R> for With<P, F, T, Comp>
+            impl<F, P, A0, T: ?Sized, $($Args,)* R> CurryWith<$N, $TupleType, Imm, Proj, A0, P, R> for F
             where
                 P: for<'b> FnOnce(&'b A0) -> &'b T,
-                F: FnOnce(&T, $($Args),*) -> R,
+                F: FnOnce(&T, $($Args),*) -> R
             {
                 type Curry = impl FnOnce($($Args),*) -> A0;
-                #[inline(always)]
-                fn curry(self, arg0: A0) -> Self::Curry {
+                #[inline(always)] fn curry_with(self, arg0: A0, proj: P) -> Self::Curry {
                     move |$($Args),*| {
-                        (self.f)((self.proj)(&arg0), $($Args),*);
+                        self(proj(&arg0), $($Args),*);
                         arg0
                     }
                 }
             }
 
-            // --- With Comp (Mut) ---
             #[cfg(feature = $feat)]
-            impl<F, P, A0, T: ?Sized, $($Args,)* R> Curry<$N, $TupleType, Mut, Own, TapMark, A0, R> for With<P, F, T, Comp>
+            impl<F, P, A0, T: ?Sized, $($Args,)* R> CurryWith<$N, $TupleType, Mut, Proj, A0, P, R> for F
             where
                 P: for<'b> FnOnce(&'b mut A0) -> &'b mut T,
-                F: FnOnce(&mut T, $($Args),*) -> R,
+                F: FnOnce(&mut T, $($Args),*) -> R
             {
                 type Curry = impl FnOnce($($Args),*) -> A0;
-                #[inline(always)]
-                fn curry(self, mut arg0: A0) -> Self::Curry {
+                #[inline(always)] fn curry_with(self, mut arg0: A0, proj: P) -> Self::Curry {
                     move |$($Args),*| {
-                        (self.f)((self.proj)(&mut arg0), $($Args),*);
+                        self(proj(&mut arg0), $($Args),*);
                         arg0
                     }
                 }
             }
 
-            // --- With Cond (Imm) ---
+            // --- Tap Cond (CurryWith + Cond) ---
             #[cfg(feature = $feat)]
-            impl<F, P, A0, T: ?Sized, $($Args,)* R> Curry<$N, $TupleType, Imm, Own, TapMark, A0, R> for With<P, F, T, Cond>
+            impl<F, P, A0, T: ?Sized, $($Args,)* R> CurryWith<$N, $TupleType, Imm, Cond, A0, P, R> for F
             where
                 P: for<'b> FnOnce(&'b A0) -> Option<&'b T>,
-                F: FnOnce(&T, $($Args),*) -> R,
+                F: FnOnce(&T, $($Args),*) -> R
             {
                 type Curry = impl FnOnce($($Args),*) -> A0;
-                #[inline(always)]
-                fn curry(self, arg0: A0) -> Self::Curry {
+                #[inline(always)] fn curry_with(self, arg0: A0, proj: P) -> Self::Curry {
                     move |$($Args),*| {
-                        if let Some(v) = (self.proj)(&arg0) { (self.f)(v, $($Args),*); }
+                        if let Some(v) = proj(&arg0) { self(v, $($Args),*); }
                         arg0
                     }
                 }
             }
 
-            // --- With Cond (Mut) ---
             #[cfg(feature = $feat)]
-            impl<F, P, A0, T: ?Sized, $($Args,)* R> Curry<$N, $TupleType, Mut, Own, TapMark, A0, R> for With<P, F, T, Cond>
+            impl<F, P, A0, T: ?Sized, $($Args,)* R> CurryWith<$N, $TupleType, Mut, Cond, A0, P, R> for F
             where
                 P: for<'b> FnOnce(&'b mut A0) -> Option<&'b mut T>,
-                F: FnOnce(&mut T, $($Args),*) -> R,
+                F: FnOnce(& mut T, $($Args),*) -> R
             {
                 type Curry = impl FnOnce($($Args),*) -> A0;
-                #[inline(always)]
-                fn curry(self, mut arg0: A0) -> Self::Curry {
+                #[inline(always)] fn curry_with(self, mut arg0: A0, proj: P) -> Self::Curry {
                     move |$($Args),*| {
-                        if let Some(v) = (self.proj)(&mut arg0) { (self.f)(v, $($Args),*); }
+                        if let Some(v) = proj(&mut arg0) { self(v, $($Args),*); }
                         arg0
                     }
                 }
@@ -460,7 +406,7 @@ mod tests {
     }
 
     #[test]
-    fn test_with_immutable() {
+    fn test_tap_cond_immutable() {
         struct Container {
             val: i32,
         }
@@ -469,12 +415,27 @@ mod tests {
         }
 
         let c = Container { val: 10 };
-        let res = c.tap(With::comp(|x: &Container| &x.val, check_val))();
+        // Explicit typing needed to resolve ambiguity between Imm and Mut source paths
+        let res = c.tap_cond(|x: &Container| Some(&x.val), check_val)();
         assert_eq!(res.val, 10);
     }
 
     #[test]
-    fn test_with_mutable() {
+    fn test_tap_proj_immutable() {
+        struct Container {
+            val: i32,
+        }
+        fn check_val(v: &i32) {
+            assert_eq!(*v, 10);
+        }
+
+        let c = Container { val: 10 };
+        let res = c.tap_proj(|x: &Container| &x.val, check_val)();
+        assert_eq!(res.val, 10);
+    }
+
+    #[test]
+    fn test_tap_cond_mutable() {
         struct Container {
             val: i32,
         }
@@ -483,7 +444,21 @@ mod tests {
         }
 
         let c = Container { val: 10 };
-        let res = c.tap(With::comp_mut(|x: &mut Container| &mut x.val, add_one))();
+        let res = c.tap_cond(|x| Some(&mut x.val), add_one)();
+        assert_eq!(res.val, 11);
+    }
+
+    #[test]
+    fn test_tap_proj_mutable() {
+        struct Container {
+            val: i32,
+        }
+        fn add_one(v: &mut i32) {
+            *v += 1;
+        }
+
+        let c = Container { val: 10 };
+        let res = c.tap_proj(|x| &mut x.val, add_one)();
         assert_eq!(res.val, 11);
     }
 
@@ -510,7 +485,7 @@ mod tests {
 
         let res = 10.pipe(add)(5) // 15
             .pipe(double)() // 30
-            .tap(|x: &i32| assert_eq!(*x, 30))();
+        .tap(|x: &i32| assert_eq!(*x, 30))();
 
         assert_eq!(res, 30);
     }
@@ -588,10 +563,11 @@ mod tests {
             port: 8080,
         };
 
-        (&s).tap(With::comp(|x: &&Server| x.ip.as_bytes(), check_ipv4))();
+        // tap_proj: projection always succeeds
+        (&s).tap_proj(|x| x.ip.as_bytes(), check_ipv4)();
         assert_eq!(s.port, 8080);
 
-        let s = s.tap(With::comp(|x: &Server| x.ip.as_bytes(), check_ipv4))();
+        let s = s.tap_proj(|x| x.ip.as_bytes(), check_ipv4)();
         assert_eq!(s.port, 8080);
     }
 
@@ -601,12 +577,34 @@ mod tests {
             assert!(*x < n)
         }
 
-        let val = 0.tap(With::cond(|x: &i32| if *x < 5 { Some(x) } else { None }, assert_lt))(5);
+        let val = 0.tap_cond(|x| if *x < 5 { Some(x) } else { None }, assert_lt)(5);
         assert_eq!(val, 0)
     }
 
     #[test]
-    fn with_doc() {
+    fn tap_proj_doc() {
+        #[derive(Debug)]
+        struct Request {
+            _url: &'static str,
+            attempts: u32,
+        }
+
+        fn track_retry(count: &mut u32) {
+            *count += 1
+        }
+
+        let mut req = Request {
+            _url: "https://api.rs",
+            attempts: 3,
+        };
+
+        // tap_proj: always project to a mutable field
+        (&mut req).tap_proj(|r| &mut r.attempts, track_retry)();
+        assert_eq!(req.attempts, 4);
+    }
+
+    #[test]
+    fn tap_cond_doc() {
         #[derive(Debug)]
         struct Request {
             _url: &'static str,
@@ -626,27 +624,30 @@ mod tests {
             attempts: 3,
         };
 
-        // mutate a field
-        (&mut req).tap(With::comp_mut(|r: &mut &mut Request| &mut r.attempts, track_retry))();
+        // tap_mut a field
+        (&mut req).tap_cond(|r| Some(&mut r.attempts), track_retry)();
 
         assert_eq!(req.attempts, 4);
 
-        // tap only on Err
-        let res = Err::<Request, _>(503).tap(With::cond(|x: &Result<Request, u32>| x.as_ref().err(), log_status))(req.attempts);
+        // tap_err (only tap on error)
+        let res = Err::<Request, _>(503).tap_cond(|x| x.as_ref().err(), log_status)(req.attempts);
 
         assert_eq!(res.unwrap_err(), 503);
 
-        // tap only in debug builds
-        let req = req.tap(With::cond(|r: &Request| {
-            #[cfg(debug_assertions)]
-            {
-                Some(r)
-            }
-            #[cfg(not(debug_assertions))]
-            {
-                None
-            }
-        }, log_trace))("FINAL_STATE");
+        // tap_dbg (only tap in debug mode)
+        let req = req.tap_cond(
+            |r| {
+                #[cfg(debug_assertions)]
+                {
+                    Some(r)
+                }
+                #[cfg(not(debug_assertions))]
+                {
+                    None
+                }
+            },
+            log_trace,
+        )("FINAL_STATE");
 
         assert_eq!(req.attempts, 4);
     }
@@ -657,7 +658,7 @@ mod tests {
             *x -= n;
         }
 
-        let val = 10.tap(With::cond_mut(|x: &mut i32| if *x >= 5 { Some(x) } else { None }, take))(5);
+        let val = 10.tap_cond(|x| if *x >= 5 { Some(x) } else { None }, take)(5);
         assert_eq!(val, 5)
     }
 
@@ -698,32 +699,32 @@ mod extended_tap_tests {
     #[test]
     fn test_simulate_tap_some() {
         let opt = Some(42);
-        let res = opt.tap(With::cond(|x: &Option<i32>| x.as_ref(), log_val))();
+        let res = opt.tap_cond(|x: &Option<i32>| x.as_ref(), log_val)();
         assert_eq!(res, Some(42));
 
         let none: Option<i32> = None;
-        let res_none = none.tap(With::cond(|x: &Option<i32>| x.as_ref(), log_val))();
+        let res_none = none.tap_cond(|x: &Option<i32>| x.as_ref(), log_val)();
         assert_eq!(res_none, None);
     }
 
     #[test]
     fn test_simulate_tap_ok() {
         let res: Result<i32, &str> = Ok(100);
-        let final_res = res.tap(With::cond(|x: &Result<i32, &str>| x.as_ref().ok(), log_val))();
+        let final_res = res.tap_cond(|x: &Result<i32, &str>| x.as_ref().ok(), log_val)();
         assert_eq!(final_res, Ok(100));
     }
 
     #[test]
     fn test_simulate_tap_err() {
         let res: Result<i32, &str> = Err("critical failure");
-        let final_res = res.tap(With::cond(|x: &Result<i32, &str>| x.as_ref().err(), log_str))();
+        let final_res = res.tap_cond(|x: &Result<i32, &str>| x.as_ref().err(), log_str)();
         assert_eq!(final_res, Err("critical failure"));
     }
 
     #[test]
     fn test_simulate_conditional_mutation() {
         let val = Some(5);
-        let res = val.tap(With::cond_mut(|x: &mut Option<i32>| x.as_mut(), mutate_val))();
+        let res = val.tap_cond(|x: &mut Option<i32>| x.as_mut(), mutate_val)();
         assert_eq!(res, Some(15));
     }
 
@@ -732,7 +733,7 @@ mod extended_tap_tests {
         fn my_dbg<T: core::fmt::Debug>(_v: &T) {}
         let value = 500;
 
-        let res = value.tap(With::cond(
+        let res = value.tap_cond(
             |x: &i32| {
                 #[cfg(debug_assertions)]
                 {
@@ -744,7 +745,7 @@ mod extended_tap_tests {
                 }
             },
             my_dbg,
-        ))();
+        )();
 
         assert_eq!(res, 500);
     }
@@ -763,20 +764,20 @@ mod reference_tap_tests {
     #[test]
     fn test_ref_tap_some() {
         let opt = Some(42);
-        let _ = (&opt).tap(With::cond(|x: &&Option<i32>| x.as_ref(), log_val))();
+        let _ = (&opt).tap_cond(|x: &&Option<i32>| x.as_ref(), log_val)();
         assert_eq!(opt, Some(42));
     }
 
     #[test]
     fn test_ref_tap_ok() {
         let res: Result<i32, &str> = Ok(100);
-        let _ = (&res).tap(With::cond(|x: &&Result<i32, &str>| x.as_ref().ok(), log_val))();
+        let _ = (&res).tap_cond(|x: &&Result<i32, &str>| x.as_ref().ok(), log_val)();
         assert_eq!(res, Ok(100));
     }
 
     #[test]
     fn test_ref_tap_err() {
-        let res: Result<i32, &str> = Err("fail").tap(With::cond(|x: &Result<i32, &str>| x.err(), log_str))();
+        let res: Result<i32, &str> = Err("fail").tap_cond(|x| x.err(), log_str)();
         assert_eq!(res.err(), Some("fail"));
         assert_eq!(res, Err("fail"));
     }
@@ -784,7 +785,7 @@ mod reference_tap_tests {
     #[test]
     fn test_mut_ref_tap_some() {
         let mut val = Some(5);
-        let _ = (&mut val).tap(With::cond_mut(|x: &mut &mut Option<i32>| x.as_mut(), mutate_val))();
+        let _ = (&mut val).tap_cond(|x: &mut &mut Option<i32>| x.as_mut(), mutate_val)();
         assert_eq!(val, Some(15));
     }
 
@@ -795,7 +796,7 @@ mod reference_tap_tests {
         }
         let value = 500;
 
-        let _ = (&value).tap(With::cond(
+        let _ = (&value).tap_cond(
             |x: &&i32| {
                 #[cfg(debug_assertions)]
                 {
@@ -807,7 +808,7 @@ mod reference_tap_tests {
                 }
             },
             check_ref,
-        ))();
+        )();
 
         assert_eq!(value, 500);
     }
@@ -834,45 +835,76 @@ mod mutation_tests {
     }
 
     #[test]
-    fn with_mut_mutate_struct() {
+    fn tap_cond_mutate_struct() {
         let mut wrapper = Wrapper {
             inner: Counter { count: 0 },
         };
 
-        let res = (&mut wrapper).tap(With::comp_mut(|w: &mut &mut Wrapper| &mut w.inner, increment))();
+        let res = (&mut wrapper).tap_cond(|w| Some(&mut w.inner), increment)();
 
         assert_eq!(res.inner.count, 1);
     }
 
     #[test]
-    fn with_mut_mutate_primitive_field() {
+    fn tap_proj_mutate_struct() {
+        let mut wrapper = Wrapper {
+            inner: Counter { count: 0 },
+        };
+
+        let res = (&mut wrapper).tap_proj(|w| &mut w.inner, increment)();
+
+        assert_eq!(res.inner.count, 1);
+    }
+
+    #[test]
+    fn tap_cond_mutate_primitive_field() {
         let mut counter = Counter { count: 5 };
 
-        let res = (&mut counter).tap(With::comp_mut(|c: &mut &mut Counter| &mut c.count, add_ten))();
+        let res = (&mut counter).tap_cond(|c| Some(&mut c.count), add_ten)();
 
         assert_eq!(res.count, 15);
     }
 
     #[test]
-    fn with_cond_mut_conditional_mutation() {
+    fn tap_proj_mutate_primitive_field() {
+        let mut counter = Counter { count: 5 };
+
+        let res = (&mut counter).tap_proj(|c| &mut c.count, add_ten)();
+
+        assert_eq!(res.count, 15);
+    }
+
+    #[test]
+    fn tap_cond_conditional_mutation() {
         let value = 100;
 
-        let res = value.tap(With::cond_mut(|v: &mut i32| {
+        fn conditional_proj(v: &mut i32) -> Option<&mut i32> {
             if *v > 50 {
                 Some(v)
             } else {
                 None
             }
-        }, add_ten))();
+        }
+
+        let res = value.tap_cond(conditional_proj, add_ten)();
 
         assert_eq!(res, 110);
     }
 
     #[test]
-    fn with_mut_owned_to_mut_projection() {
+    fn tap_cond_owned_to_mut_projection() {
         let counter = Counter { count: 0 };
 
-        let res = counter.tap(With::comp_mut(|c: &mut Counter| &mut c.count, add_ten))();
+        let res = counter.tap_cond(|c: &mut Counter| Some(&mut c.count), add_ten)();
+
+        assert_eq!(res.count, 10);
+    }
+
+    #[test]
+    fn tap_proj_owned_to_mut_projection() {
+        let counter = Counter { count: 0 };
+
+        let res = counter.tap_proj(|c: &mut Counter| &mut c.count, add_ten)();
 
         assert_eq!(res.count, 10);
     }
@@ -1001,49 +1033,49 @@ mod fn_bound_tests {
     }
 
     #[test]
-    fn with_cond_none_does_not_run_side_effect() {
+    fn tap_cond_none_does_not_run_side_effect() {
         let mut ran = false;
         let none: Option<i32> = None;
-        let result = none.tap(With::cond(|x: &Option<i32>| x.as_ref(), {
+        let result = none.tap_cond(|x: &Option<i32>| x.as_ref(), {
             let f = |_v: &i32| ran = true;
             f
-        }))();
+        })();
         assert_eq!(result, None);
         assert!(!ran);
     }
 
     #[test]
-    fn with_cond_some_does_run_side_effect() {
+    fn tap_cond_some_does_run_side_effect() {
         let mut ran = false;
         let some = Some(7);
-        let result = some.tap(With::cond(|x: &Option<i32>| x.as_ref(), {
+        let result = some.tap_cond(|x: &Option<i32>| x.as_ref(), {
             let f = |_v: &i32| ran = true;
             f
-        }))();
+        })();
         assert_eq!(result, Some(7));
         assert!(ran);
     }
 
     #[test]
-    fn with_cond_mut_none_skips_mutation() {
+    fn tap_cond_mut_none_skips_mutation() {
         let mut ran = false;
         let val = 3;
-        let result = val.tap(With::cond_mut(|x: &mut i32| if *x > 100 { Some(x) } else { None }, {
+        let result = val.tap_cond(|x: &mut i32| if *x > 100 { Some(x) } else { None }, {
             let f = |_v: &mut i32| ran = true;
             f
-        }))();
+        })();
         assert_eq!(result, 3);
         assert!(!ran);
     }
 
     #[test]
-    fn with_cond_mut_accepts_fnonce_projection_and_effect() {
+    fn tap_cond_mut_accepts_fnonce_projection_and_effect() {
         let mut dropped = false;
         let tok = Token {
             dropped: &mut dropped,
             n: 0,
         };
-        let result = Some(10).tap(With::cond_mut(
+        let result = Some(10).tap_cond(
             move |x: &mut Option<i32>| {
                 let _ = tok.n;
                 drop(tok);
@@ -1053,20 +1085,20 @@ mod fn_bound_tests {
                 let f = |v: &mut i32| *v += 1;
                 f
             },
-        ))();
+        )();
         assert_eq!(result, Some(11));
         assert!(dropped);
     }
 
     #[test]
-    fn with_cond_mut_extra_args() {
+    fn tap_cond_mut_extra_args() {
         fn add_n(v: &mut i32, n: i32) {
             *v += n;
         }
-        let result = 10.tap(With::cond_mut(|x: &mut i32| if *x >= 0 { Some(x) } else { None }, {
+        let result = 10.tap_cond(|x: &mut i32| if *x >= 0 { Some(x) } else { None }, {
             let f = add_n;
             f
-        }))(5);
+        })(5);
         assert_eq!(result, 15);
     }
 }
