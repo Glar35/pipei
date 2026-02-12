@@ -3,7 +3,9 @@
 _pipei_ allows writing `x.pipe(f)(y, z)` in place of `f(x, y, z)`, enabling method-style chaining and partial application for multi-argument functions.
 It also provides `tap` for multi-argument side effects that return the original value, `tap_proj` to compose a projection with a side effect, and `tap_cond` for conditional projections that return `Option`.
 
-This project is inspired by the [UMCS (Unified Method Call Syntax) proposal](https://internals.rust-lang.org/t/weird-syntax-idea-s-for-umcs/19200). It requires nightly Rust for `#![feature(impl_trait_in_assoc_type)]`.
+This project is inspired by the [UMCS (Unified Method Call Syntax) proposal](https://internals.rust-lang.org/t/weird-syntax-idea-s-for-umcs/19200).
+It requires nightly Rust for `#![feature(impl_trait_in_assoc_type)]`.
+For general motivation, see [_tap_](https://crates.io/crates/tap).
 
 ### Basic Chaining
 
@@ -65,6 +67,8 @@ Like `tap`, the original value is always returned.
 
 ```rust
 use pipei::TapWith;
+
+#[derive(Debug)]
 struct Request { url: String, attempts: u32 }
 
 fn track_retry(count: &mut u32) { *count += 1 }
