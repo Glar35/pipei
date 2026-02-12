@@ -1105,28 +1105,45 @@ mod fn_bound_tests {
     #[test]
     fn test_readme_proj() {
         #[derive(Debug)]
-        struct Request<'a> { url: &'a str, attempts: u32 }
+        struct Request<'a> {
+            _url: &'a str,
+            attempts: u32,
+        }
 
-        fn track_retry(count: &mut u32) { *count += 1 }
-        fn log_trace<T: core::fmt::Debug>(val: &T, label: &str) { /* ... */ }
+        fn track_retry(count: &mut u32) {
+            *count += 1
+        }
+        fn log_trace<T: core::fmt::Debug>(_val: &T, _label: &str) { /* ... */
+        }
 
-        let mut req = Request { url: "https://pipei.rs".into(), attempts: 3 };
+        let mut req = Request {
+            _url: "https://pipei.rs".into(),
+            attempts: 3,
+        };
 
         (&mut req).tap_proj(|r| &mut r.attempts, track_retry)();
 
         assert_eq!(req.attempts, 4);
 
         // tap_cond: tap only on Err
-        let res = Err::<(), _>(503)
-            .tap_cond(|x| x.as_ref().err(), log_trace)("request failed");
+        let res = Err::<(), _>(503).tap_cond(|x| x.as_ref().err(), log_trace)("request failed");
 
         assert_eq!(res.unwrap_err(), 503);
 
         // tap_cond: tap only in debug builds
-        let req = req.tap_cond(|r| {
-            #[cfg(debug_assertions)] { Some(r) }
-            #[cfg(not(debug_assertions))] { None }
-        }, log_trace)("FINAL");
+        let req = req.tap_cond(
+            |r| {
+                #[cfg(debug_assertions)]
+                {
+                    Some(r)
+                }
+                #[cfg(not(debug_assertions))]
+                {
+                    None
+                }
+            },
+            log_trace,
+        )("FINAL");
 
         assert_eq!(req.attempts, 4);
     }
