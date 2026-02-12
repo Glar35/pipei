@@ -5,7 +5,7 @@ It also provides `tap` for multi-argument side effects that return the original 
 
 This project is inspired by the [UMCS (Unified Method Call Syntax) proposal](https://internals.rust-lang.org/t/weird-syntax-idea-s-for-umcs/19200).
 It requires nightly Rust for `#![feature(impl_trait_in_assoc_type)]`.
-For general motivation, see [_tap_](https://crates.io/crates/tap).
+For general motivation for the `tap` and `pipe` operators, see [_tap_](https://crates.io/crates/tap).
 
 ### Basic Chaining
 
