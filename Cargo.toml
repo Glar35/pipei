@@ -1,6 +1,6 @@
 [package]
 name = "pipei"
-version = "0.3.7"
+version = "0.3.8"
 edition = "2021"
 description = "Multi-argument pipe and tap with partial application."
 keywords = ["pipe", "tap", "chaining", "partial-application", "functional"]
