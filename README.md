@@ -80,13 +80,13 @@ let mut req = Request { url: "https://pipei.rs".into(), attempts: 3 };
 
 assert_eq!(req.attempts, 4);
 
-// tap_cond: tap only on Err
+// tap only on Err
 let res = Err::<(), _>(503)
     .tap_cond(|x| x.as_ref().err(), log_trace)("request failed");
 
 assert_eq!(res.unwrap_err(), 503);
 
-// tap_cond: tap only in debug builds
+// tap only in debug builds
 let req = req.tap_cond(|r| {
     #[cfg(debug_assertions)] { Some(r) }
     #[cfg(not(debug_assertions))] { None }
@@ -113,7 +113,7 @@ save(
 );
 ```
 
-**With `pipe` from the _tap_ crate:**
+**With the _[_tap_](https://crates.io/crates/tap)_ crate:**
 Since `?` applies inside the closure, the closure returns a `Result`, forcing manual `Ok` wrapping and an extra `?`.
 ```rust
 load("background.png")?
