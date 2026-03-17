@@ -53,12 +53,13 @@
     </cargoProject>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9a160d57-da59-441c-aa3b-69ef0db1b8be" name="Changes" comment="improved documentation">
-      <change afterPath="$PROJECT_DIR$/tests/tests.rs" afterDir="false" />
+    <list default="true" id="9a160d57-da59-441c-aa3b-69ef0db1b8be" name="Changes" comment="minor refactoring">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Cargo.lock" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.lock" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/tests.rs" beforeDir="false" afterPath="$PROJECT_DIR$/tests/tests.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -115,6 +116,7 @@
     "Cargo.Doctest of tap_with (line 133).executor": "Run",
     "Cargo.Doctest of tap_with (line 169).executor": "Run",
     "Cargo.Run.executor": "Run",
+    "Cargo.Test borrow_not_move_preserves_original.executor": "Run",
     "Cargo.Test extended_tap_tests.executor": "Run",
     "Cargo.Test extended_tap_tests::test_simulate_conditional_mutation.executor": "Run",
     "Cargo.Test extended_tap_tests::test_simulate_tap_dbg.executor": "Run",
@@ -178,9 +180,10 @@
   <component name="RsExternalLinterProjectSettings">
     <option name="tool" value="Clippy" />
   </component>
-  <component name="RunManager" selected="Cargo.Test tap_cond_doc">
-    <configuration name="Doctest of tap_with (line 169)" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package pipei --doc &quot;tap_with\ (line\ 169)&quot;" />
+  <component name="RunManager" selected="Cargo.Test borrow_not_move_preserves_original">
+    <configuration name="Run" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
+      <option name="buildProfileId" value="dev" />
+      <option name="command" value="run --package pipei --bin pipei" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <envs />
       <option name="emulateTerminal" value="true" />
@@ -196,9 +199,8 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Run" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
-      <option name="buildProfileId" value="dev" />
-      <option name="command" value="run --package pipei --bin pipei" />
+    <configuration name="Test borrow_not_move_preserves_original" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package pipei --test tests borrow_not_move_preserves_original -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <envs />
       <option name="emulateTerminal" value="true" />
@@ -284,11 +286,11 @@
     </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Cargo.Test borrow_not_move_preserves_original" />
         <item itemvalue="Cargo.Test tap_cond_doc" />
         <item itemvalue="Cargo.Test tests::test_question" />
         <item itemvalue="Cargo.Test fn_bound_tests::test_readme_proj" />
         <item itemvalue="Cargo.Test fn_bound_tests" />
-        <item itemvalue="Cargo.Doctest of tap_with (line 169)" />
       </list>
     </recent_temporary>
   </component>
@@ -367,23 +369,8 @@
       <workItem from="1771156668300" duration="43000" />
       <workItem from="1771169378086" duration="237000" />
       <workItem from="1771314429554" duration="604000" />
-      <workItem from="1773741063319" duration="2953000" />
-    </task>
-    <task id="LOCAL-00009" summary="new version">
-      <option name="closed" value="true" />
-      <created>1769368207334</created>
-      <option name="number" value="00009" />
-      <option name="presentableId" value="LOCAL-00009" />
-      <option name="project" value="LOCAL" />
-      <updated>1769368207334</updated>
-    </task>
-    <task id="LOCAL-00010" summary="new version">
-      <option name="closed" value="true" />
-      <created>1769614575964</created>
-      <option name="number" value="00010" />
-      <option name="presentableId" value="LOCAL-00010" />
-      <option name="project" value="LOCAL" />
-      <updated>1769614575964</updated>
+      <workItem from="1773741063319" duration="3089000" />
+      <workItem from="1773754169014" duration="7728000" />
     </task>
     <task id="LOCAL-00011" summary="removing pipe_ref">
       <option name="closed" value="true" />
@@ -761,7 +748,23 @@
       <option name="project" value="LOCAL" />
       <updated>1770972863463</updated>
     </task>
-    <option name="localTasksCounter" value="58" />
+    <task id="LOCAL-00058" summary="minor refactoring">
+      <option name="closed" value="true" />
+      <created>1773744153098</created>
+      <option name="number" value="00058" />
+      <option name="presentableId" value="LOCAL-00058" />
+      <option name="project" value="LOCAL" />
+      <updated>1773744153098</updated>
+    </task>
+    <task id="LOCAL-00059" summary="minor refactoring">
+      <option name="closed" value="true" />
+      <created>1773744247320</created>
+      <option name="number" value="00059" />
+      <option name="presentableId" value="LOCAL-00059" />
+      <option name="project" value="LOCAL" />
+      <updated>1773744247321</updated>
+    </task>
+    <option name="localTasksCounter" value="60" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -790,6 +793,7 @@
     <MESSAGE value="tap_with -&gt; tap_proj and tap_cond" />
     <MESSAGE value="improve documentation" />
     <MESSAGE value="improved documentation" />
-    <option name="LAST_COMMIT_MESSAGE" value="improved documentation" />
+    <MESSAGE value="minor refactoring" />
+    <option name="LAST_COMMIT_MESSAGE" value="minor refactoring" />
   </component>
 </project>

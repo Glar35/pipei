@@ -76,13 +76,14 @@ fn log_trace<T: core::fmt::Debug>(val: &T, label: &str) { /* ... */ }
 
 let mut req = Request { url: "https://pipei.rs".into(), attempts: 3 };
 
+// Essentially equivalent to let rec = rec.[...] 
 (&mut req).tap_proj(|r| &mut r.attempts, track_retry)();
 
 assert_eq!(req.attempts, 4);
 
 // tap only on Err
 let res = Err::<(), _>(503)
-    .tap_cond(|x| x.as_ref().err(), log_trace)("request failed");
+    .tap_cond(|x| x.as_ref().err(), log_trace)("Warning");
 
 assert_eq!(res.unwrap_err(), 503);
 

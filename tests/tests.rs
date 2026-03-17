@@ -382,9 +382,12 @@ mod extended_tap_tests {
     }
 }
 
-// ============================================================================================
-// Reference tap tests
-// ============================================================================================
+#[test]
+fn borrow_not_move_preserves_original() {
+    let mut data = vec![1, 2, 3];
+    (&mut data).tap(|v: &mut &mut Vec<_>| v.push(4))();
+    assert_eq!(data, vec![1, 2, 3, 4]);
+}
 
 #[cfg(feature = "0")]
 mod reference_tap_tests {
@@ -877,10 +880,6 @@ mod arity_3_tests {
         assert_eq!(100.pipe(weighted_sum)(1, 2, 3), 114);
     }
 }
-
-// ============================================================================================
-// Cross-arity chaining tests (new)
-// ============================================================================================
 
 #[cfg(all(feature = "0", feature = "1", feature = "2"))]
 mod cross_arity_chain_tests {
