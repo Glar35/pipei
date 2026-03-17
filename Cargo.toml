@@ -1,6 +1,6 @@
 [package]
 name = "pipei"
-version = "0.3.10"
+version = "0.3.11"
 edition = "2021"
 description = "Multi-argument pipe and tap with partial application."
 keywords = ["pipe", "tap", "chaining", "partial-application", "functional"]
@@ -11,6 +11,7 @@ documentation = "https://docs.rs/pipei"
 readme = "README.md"
 include = [
     "src/**/*",
+    "tests/**/*",
     "README.md",
 ]
 
