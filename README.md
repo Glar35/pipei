@@ -76,7 +76,7 @@ fn log_trace<T: core::fmt::Debug>(val: &T, label: &str) { /* ... */ }
 
 let mut req = Request { url: "https://pipei.rs".into(), attempts: 3 };
 
-// Essentially equivalent to let rec = rec.[...] 
+// Essentially the same as `let rec = rec.[...]` 
 (&mut req).tap_proj(|r| &mut r.attempts, track_retry)();
 
 assert_eq!(req.attempts, 4);
